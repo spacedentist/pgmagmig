@@ -10,3 +10,9 @@ build-dir = "output"
 [output.html]
 git-repository-url = "https://github.com/spacedentist/pgmagmig"
 edit-url-template = "https://github.com/spacedentist/pgmagmig/edit/master/book/{path}"
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[preprocessor]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"

@@ -43,16 +43,40 @@ Hazards are a best-effort signal, not a guarantee of completeness. New hazard ty
 
 ## Verification by construction
 
-pgmagmig doesn't trust its own output. Every diff is automatically verified by:
+pgmagmig doesn't trust its own output. Every diff is automatically verified by applying it to a real PostgreSQL engine and checking the result:
 
-1. Starting a fresh PGlite with the "from" schema.
-2. Applying the generated DDL.
-3. Extracting the resulting schema.
-4. Comparing it field-by-field to the expected "to" schema.
+```mermaid
+flowchart LR
+  from["Schema A\n(from)"]
+  to["Schema B\n(to)"]
+  diff["Differ"]
+  ddl["Generated\nDDL"]
+  pglite["PGlite\nloaded with A"]
+  extract["Extract\nschema"]
+  actual["Actual\nresult"]
+  compare{{"Compare\nfield-by-field"}}
+  ok["✅ Valid"]
+  fail["❌ Rejected"]
+
+  from --> diff
+  to --> diff
+  diff --> ddl
+  from --> pglite
+  ddl --> pglite
+  pglite --> extract
+  extract --> actual
+  actual --> compare
+  to --> compare
+  compare -->|match| ok
+  compare -->|mismatch| fail
+
+  style ok stroke:#5a5,color:#5a5
+  style fail stroke:#e55,color:#e55
+```
 
 If the comparison fails, the diff is rejected. This catches bugs in the differ itself, edge cases in DDL generation, and subtle interactions between schema objects.
 
-For `draft-migration`, both directions are validated: the up migration transforms "from" to "to", and the down migration transforms "to" back to "from".
+For `draft-migration`, both directions are validated: the up migration transforms A to B, and the down migration transforms B back to A.
 
 ## Readable output
 

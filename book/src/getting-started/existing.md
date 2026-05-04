@@ -76,6 +76,45 @@ Or write the migration by hand — it's just a YAML file with `DROP TABLE` in th
 
 The two-migration bootstrap captures a clean baseline:
 
+```mermaid
+flowchart TB
+  subgraph before ["Before: existing database"]
+    direction LR
+    old_tables["Your tables,\nindexes, etc."]
+    old_mgmt["Old migration\ntable (optional)"]
+  end
+
+  subgraph bootstrap ["Bootstrap"]
+    direction TB
+    gen["pgmagmig bootstrap\n--from-database ..."]
+    m1["0001.yaml\nCreate pgmagmig table"]
+    m2["0002.yaml\nExisting schema snapshot"]
+    gen --> m1
+    gen --> m2
+  end
+
+  subgraph transition ["Transition SQL (run via old system or manually)"]
+    direction LR
+    create["CREATE TABLE\nschema_migrations"]
+    insert["INSERT rows\nfor 0001 + 0002"]
+    create --> insert
+  end
+
+  subgraph after ["After: pgmagmig manages the database"]
+    direction LR
+    tables["Your tables\n(unchanged)"]
+    pgm_table["pgmagmig\nmanagement table"]
+    future["Future migrations\nvia pgmagmig"]
+  end
+
+  before --> bootstrap
+  bootstrap --> transition
+  transition --> after
+
+  style before fill:#3332
+  style after fill:#5a52
+```
+
 - **Migration 1** is the management table itself. It exists so that pgmagmig can manage its own infrastructure through the same mechanism it manages everything else.
 - **Migration 2** is a snapshot of the existing schema at the point of adoption. It has no down migration (`down` is omitted), because rolling back the entire existing schema is not meaningful.
 

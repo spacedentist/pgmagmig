@@ -40,6 +40,44 @@ The `--allow-rollback` flag is required because down migrations are inherently d
 
 Without `--allow-rollback`, pgmagmig prints the plan (what it would roll back and apply) and exits with a non-zero status. This is useful in CI where you want to verify the database is in sync without accidentally running destructive operations.
 
+### How branch switching works
+
+When you switch branches, the migration files on disk may diverge from what's applied in the database. pgmagmig walks both lists in parallel, finds the point where UUIDs stop matching, and rolls back everything beyond that point before applying the new branch's migrations.
+
+```mermaid
+block-beta
+  columns 5
+
+  space applied["Applied in DB"] space files["Files on disk"] space
+
+  space:5
+
+  a1["0001 · Create tables\n✅ uuid-aaa"] space:2 f1["0001 · Create tables\n✅ uuid-aaa"] space
+  space m1["match ✓"] space:3
+
+  a2["0002 · Add users\n✅ uuid-bbb"] space:2 f2["0002 · Add users\n✅ uuid-bbb"] space
+  space m2["match ✓"] space:3
+
+  a3["0003 · Add orders\n⬜ uuid-ccc"] space:2 f3["0003 · Add products\n🆕 uuid-ddd"] space
+  space m3["mismatch ✗"] space:3
+
+  space:4 f4["0004 · Add reviews\n🆕 uuid-eee"]
+
+  space:5
+
+  space r1["⬅ rollback 0003\n(uuid-ccc)"] space a4["➡ apply 0003\n(uuid-ddd)"] space
+  space:2 space a5["➡ apply 0004\n(uuid-eee)"] space
+
+  style a3 stroke:#e55,color:#e55
+  style f3 stroke:#5a5,color:#5a5
+  style f4 stroke:#5a5,color:#5a5
+  style r1 stroke:#e55,color:#e55
+  style a4 stroke:#5a5,color:#5a5
+  style a5 stroke:#5a5,color:#5a5
+```
+
+The match point is after 0002. Migration 0003 (uuid-ccc) is rolled back using its stored down SQL, then 0003 (uuid-ddd) and 0004 (uuid-eee) from the new branch are applied.
+
 ## Drafting migrations
 
 The `draft-migration` command generates a migration from the diff between your current migrations and a target schema:
