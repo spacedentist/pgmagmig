@@ -28,7 +28,7 @@ export async function serve(opts: ServeOptions): Promise<ServeResult> {
     await server.start();
     const hostPort = server.getServerConn();
     return {
-      connectionString: `postgresql://postgres:postgres@${hostPort}/postgres`,
+      connectionString: `postgresql://postgres:postgres@${hostPort}/postgres?sslmode=disable`,
       close: () => server.stop(),
     };
   }
