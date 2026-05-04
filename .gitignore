@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.tgz
+CLAUDE.local.md
+book/output/

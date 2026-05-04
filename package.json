@@ -1,0 +1,38 @@
+{
+  "name": "pgmagmig",
+  "version": "0.1.0",
+  "description": "PostgreSQL migration tool with integrated schema differ, powered by PGlite",
+  "type": "module",
+  "bin": {
+    "pgmagmig": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "ISC",
+  "author": "Sven Over",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spacedentist/pgmagmig.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.4.5",
+    "@electric-sql/pglite-socket": "^0.1.5",
+    "commander": "^13.1.0",
+    "pg": "^8.13.3",
+    "pino": "^9.6.0",
+    "yaml": "^2.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.50",
+    "@types/pg": "^8.11.14",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}

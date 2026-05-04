@@ -1,0 +1,45 @@
+name: Build and deploy pgmagmig book
+
+concurrency:
+  group: gh-pages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "book/book.toml"
+      - "book/src/**"
+
+jobs:
+  mdbook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Cache mdbook
+        id: cache-mdbook
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/mdbook
+            ~/.cargo/bin/mdbook-mermaid
+          key: ${{ runner.os }}-mdbook
+
+      - name: Install mdBook
+        if: steps.cache-mdbook.outputs.cache-hit != 'true'
+        run: cargo install mdbook mdbook-mermaid
+
+      - name: Run mdBook
+        run: |
+          cd book
+          mdbook-mermaid install
+          mdbook build
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./book/output
+          publish_branch: gh-pages
