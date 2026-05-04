@@ -1,0 +1,1088 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>pgmagmig</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-57143d9c.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-9cbc7df4.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">pgmagmig</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/spacedentist/pgmagmig" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="pgmagmig"><a class="header" href="#pgmagmig">pgmagmig</a></h1>
+<p><strong>pgmagmig</strong> is a PostgreSQL migration tool with an integrated schema differ, powered by <a href="https://pglite.dev">PGlite</a> (PostgreSQL compiled to WASM).</p>
+<p>Schema extraction, DDL generation, diffing, and diff validation all run <strong>in-process</strong> against PGlite. No external PostgreSQL server is required for any of these operations. A real PostgreSQL server is only needed when actually applying migrations to a database.</p>
+<h2 id="what-pgmagmig-does"><a class="header" href="#what-pgmagmig-does">What pgmagmig does</a></h2>
+<ul>
+<li><strong>Extracts</strong> a database schema into a JSON representation by querying PostgreSQL system catalogs.</li>
+<li><strong>Generates DDL</strong> from a schema, producing readable <code>CREATE TABLE</code> statements with defaults, constraints, and foreign keys inlined.</li>
+<li><strong>Diffs</strong> two schemas and produces the DDL to transform one into the other, with structured hazard annotations on destructive or lock-heavy statements.</li>
+<li><strong>Validates</strong> every generated diff by applying it to an in-process PGlite instance and comparing the result to the expected schema.</li>
+<li><strong>Drafts migration files</strong> in YAML format, with up and down SQL, automatically validated in both directions.</li>
+<li><strong>Runs migrations</strong> against a real PostgreSQL database, with per-migration transactions, branch switching, and rollback support.</li>
+<li><strong>Exposes an ephemeral PGlite</strong> via Unix socket or TCP, so any tool that speaks PostgreSQL (Prisma, sqlc, pgtyped, psql) can work against your migration-defined schema without a running database server.</li>
+</ul>
+<h2 id="why-pglite"><a class="header" href="#why-pglite">Why PGlite?</a></h2>
+<p>PGlite is real PostgreSQL 17 compiled to WASM. It’s not an approximation or a compatibility layer. The system catalogs, type system, DDL parsing, and expression evaluation are identical to a full PostgreSQL server. This means pgmagmig’s schema extraction and diff validation are tested against the same engine your production database runs.</p>
+<p>The practical benefit: you can extract, diff, and validate schemas on your laptop, in CI, or anywhere Node.js runs, without provisioning a PostgreSQL instance.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
+<p>There are two paths to adopting pgmagmig, depending on whether you’re starting with a fresh database or transitioning an existing one.</p>
+<ul>
+<li><strong><a href="#fresh-database">Fresh Database</a></strong> — you’re setting up a new project and want to manage the database schema from scratch.</li>
+<li><strong><a href="#existing-database">Existing Database</a></strong> — you have a production database with an established schema, possibly managed by another migration tool, and want to switch to pgmagmig.</li>
+</ul>
+<p>Both paths start with the <code>bootstrap</code> command, which creates the initial migration file(s) and provides instructions tailored to your situation.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="fresh-database"><a class="header" href="#fresh-database">Fresh Database</a></h1>
+<p>If you’re starting a new project with an empty database, getting started with pgmagmig takes three steps.</p>
+<h2 id="1-bootstrap-the-migrations-directory"><a class="header" href="#1-bootstrap-the-migrations-directory">1. Bootstrap the migrations directory</a></h2>
+<pre><code class="language-bash">pgmagmig bootstrap --migrations-dir ./migrations
+</code></pre>
+<p>This creates <code>0001.yaml</code> containing DDL to set up pgmagmig’s management table. The management table tracks which migrations have been applied.</p>
+<h2 id="2-define-your-schema-and-draft-a-migration"><a class="header" href="#2-define-your-schema-and-draft-a-migration">2. Define your schema and draft a migration</a></h2>
+<p>Write your desired schema as SQL:</p>
+<pre><code class="language-sql">-- schema.sql
+CREATE TABLE public.schema_migrations (
+  sequence integer PRIMARY KEY,
+  uuid uuid NOT NULL,
+  title text NOT NULL,
+  down text
+);
+
+CREATE TABLE public.users (
+  id SERIAL PRIMARY KEY,
+  email text NOT NULL UNIQUE,
+  name text,
+  created_at timestamptz DEFAULT now()
+);
+</code></pre>
+<p>Note that the management table must be included in your schema definition — it’s part of the managed schema, not hidden.</p>
+<p>Then draft a migration:</p>
+<pre><code class="language-bash">pgmagmig draft-migration \
+  --migrations-dir ./migrations \
+  --to-sql schema.sql \
+  --title "Create users table" \
+  --allow-hazards all
+</code></pre>
+<p>This creates <code>0002.yaml</code> with the DDL to transform the database from the state after <code>0001.yaml</code> (just the management table) to your desired schema. The migration is automatically validated by applying both the up and down SQL to PGlite and verifying the result.</p>
+<p>Review the generated file. By default it includes <code>invalid: true</code>, which prevents it from being applied until you’ve reviewed the SQL and removed that marker. Use <code>--no-invalid</code> to skip this if you trust the output.</p>
+<h2 id="3-apply-migrations"><a class="header" href="#3-apply-migrations">3. Apply migrations</a></h2>
+<pre><code class="language-bash">pgmagmig migrate \
+  --migrations-dir ./migrations \
+  --database-url postgres://localhost/mydb \
+  --allow-missing-management-table
+</code></pre>
+<p>The <code>--allow-missing-management-table</code> flag is needed for the very first run, since the management table doesn’t exist yet — it’s created by <code>0001.yaml</code>.</p>
+<p>After this, the database has the management table and your schema. Future migrations don’t need the flag.</p>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
+<p>From here, the workflow is:</p>
+<ol>
+<li>Edit your schema SQL file (or work directly with migration files).</li>
+<li>Run <code>pgmagmig draft-migration</code> to generate the next migration.</li>
+<li>Review and apply with <code>pgmagmig migrate</code>.</li>
+</ol>
+<p>See <a href="#developer-workflow">Developer Workflow</a> for day-to-day usage patterns.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="existing-database"><a class="header" href="#existing-database">Existing Database</a></h1>
+<p>If you have an existing database — whether managed by another migration tool or maintained manually — pgmagmig can capture its current schema and take over migration management from there.</p>
+<h2 id="1-bootstrap-with-your-existing-schema"><a class="header" href="#1-bootstrap-with-your-existing-schema">1. Bootstrap with your existing schema</a></h2>
+<p>Point <code>bootstrap</code> at your existing database:</p>
+<pre><code class="language-bash">pgmagmig bootstrap \
+  --migrations-dir ./migrations \
+  --from-database postgres://localhost/mydb
+</code></pre>
+<p>Or if you have your schema as SQL files:</p>
+<pre><code class="language-bash">pgmagmig bootstrap \
+  --migrations-dir ./migrations \
+  --from-sql schema.sql
+</code></pre>
+<p>This creates two files:</p>
+<ul>
+<li><strong><code>0001.yaml</code></strong> — creates pgmagmig’s management table.</li>
+<li><strong><code>0002.yaml</code></strong> — captures your entire existing schema.</li>
+</ul>
+<h2 id="2-register-the-migrations-in-your-database"><a class="header" href="#2-register-the-migrations-in-your-database">2. Register the migrations in your database</a></h2>
+<p>Open <code>0001.yaml</code>. At the top you’ll find a comment block with exact SQL to run:</p>
+<pre><code class="language-sql">CREATE TABLE public.schema_migrations (
+  sequence integer PRIMARY KEY,
+  uuid uuid NOT NULL,
+  title text NOT NULL,
+  down text
+);
+
+INSERT INTO public.schema_migrations (sequence, uuid, title, down) VALUES
+    (1, '&lt;uuid-from-0001&gt;', 'Create pgmagmig management table', NULL),
+    (2, '&lt;uuid-from-0002&gt;', 'Existing database schema', NULL);
+</code></pre>
+<p>The UUIDs in the comment match the ones in <code>0001.yaml</code> and <code>0002.yaml</code>.</p>
+<p>Run this SQL against your database using whatever mechanism you currently use — your existing migration tool, a manual <code>psql</code> session, or a deployment script. This creates the pgmagmig management table and records both bootstrap migrations as already applied, which is correct: the management table now exists (from the SQL you just ran) and the rest of the schema was already there.</p>
+<h2 id="3-verify-the-state"><a class="header" href="#3-verify-the-state">3. Verify the state</a></h2>
+<pre><code class="language-bash">pgmagmig migrate \
+  --migrations-dir ./migrations \
+  --database-url postgres://localhost/mydb \
+  --check
+</code></pre>
+<p>This should report “Database is up to date.” If it doesn’t, the schema in your database differs from what pgmagmig extracted — investigate before proceeding.</p>
+<h2 id="4-clean-up-the-old-system-optional"><a class="header" href="#4-clean-up-the-old-system-optional">4. Clean up the old system (optional)</a></h2>
+<p>If your previous migration system had its own management table (e.g., <code>schema_migrations</code> from Rails, <code>_prisma_migrations</code> from Prisma, <code>alembic_version</code> from Alembic), you can now create a pgmagmig migration to drop it:</p>
+<pre><code class="language-bash"># Add the old table to your schema SQL as a reminder, then:
+pgmagmig draft-migration \
+  --migrations-dir ./migrations \
+  --to-sql schema.sql \
+  --title "Remove old migration table" \
+  --allow-hazards all
+</code></pre>
+<p>Or write the migration by hand — it’s just a YAML file with <code>DROP TABLE</code> in the <code>up</code> field.</p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>The two-migration bootstrap captures a clean baseline:</p>
+<pre class="mermaid">flowchart TB
+  subgraph before ["Before: existing database"]
+    direction LR
+    old_tables["Your tables,\nindexes, etc."]
+    old_mgmt["Old migration\ntable (optional)"]
+  end
+
+  subgraph bootstrap ["Bootstrap"]
+    direction TB
+    gen["pgmagmig bootstrap\n--from-database ..."]
+    m1["0001.yaml\nCreate pgmagmig table"]
+    m2["0002.yaml\nExisting schema snapshot"]
+    gen --&gt; m1
+    gen --&gt; m2
+  end
+
+  subgraph transition ["Transition SQL (run via old system or manually)"]
+    direction LR
+    create["CREATE TABLE\nschema_migrations"]
+    insert["INSERT rows\nfor 0001 + 0002"]
+    create --&gt; insert
+  end
+
+  subgraph after ["After: pgmagmig manages the database"]
+    direction LR
+    tables["Your tables\n(unchanged)"]
+    pgm_table["pgmagmig\nmanagement table"]
+    future["Future migrations\nvia pgmagmig"]
+  end
+
+  before --&gt; bootstrap
+  bootstrap --&gt; transition
+  transition --&gt; after
+
+  style before fill:#3332
+  style after fill:#5a52
+</pre>
+
+<ul>
+<li><strong>Migration 1</strong> is the management table itself. It exists so that pgmagmig can manage its own infrastructure through the same mechanism it manages everything else.</li>
+<li><strong>Migration 2</strong> is a snapshot of the existing schema at the point of adoption. It has no down migration (<code>down</code> is omitted), because rolling back the entire existing schema is not meaningful.</li>
+</ul>
+<p>From this point forward, all schema changes go through pgmagmig. The migration history starts clean, with a clear record of what the database looked like when pgmagmig took over.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="migration-philosophy"><a class="header" href="#migration-philosophy">Migration Philosophy</a></h1>
+<p>pgmagmig has strong opinions about how database migrations should work. These opinions exist because schema migrations are one of the most dangerous operations in a production system — they’re irreversible, they run against live data, and mistakes are expensive. The design choices below all serve the same goal: <strong>make it hard to accidentally break your database</strong>.</p>
+<h2 id="sequential-numbering-git-conflicts-are-a-feature"><a class="header" href="#sequential-numbering-git-conflicts-are-a-feature">Sequential numbering: git conflicts are a feature</a></h2>
+<p>Migration files are named <code>0001.yaml</code>, <code>0002.yaml</code>, <code>0003.yaml</code>, and so on. Numbering must be consecutive starting at 1 — any gap is an error.</p>
+<p>This is a deliberate choice. When two developers on separate branches both create <code>0032.yaml</code>, the second branch to merge gets a git conflict. That conflict forces a conversation: does the new migration still make sense given the one that just landed? Do they interact? Is the ordering correct?</p>
+<p>Timestamp-based filenames (like <code>20240315120000_add_users.sql</code>) avoid this conflict, which sounds convenient but is dangerous. Two migrations developed in parallel may both merge and deploy without conflict, but produce a schema that neither developer intended. The interactions between concurrent migrations are exactly the kind of thing that needs human review.</p>
+<p>In spirit, this forced serialisation is not unlike PostgreSQL’s <code>SERIALIZABLE</code> transaction isolation level. <code>SERIALIZABLE</code> makes reasoning about concurrent transactions simple by ensuring they behave as if they ran one at a time. Sequential migration numbering does the same thing for schema changes: by forcing developers to serialise their migrations, it makes reasoning about the cumulative effect simple. Each migration is authored with full knowledge of every migration before it.</p>
+<h2 id="the-management-table-is-part-of-the-schema"><a class="header" href="#the-management-table-is-part-of-the-schema">The management table is part of the schema</a></h2>
+<p>pgmagmig’s management table (<code>schema_migrations</code> by default) is not hidden or special. It appears in schema extractions, diffs, and generated DDL like any other table. If you define your target schema via <code>--to-sql</code>, the management table must be included.</p>
+<p>This is intentional. The management table is a real table in your database. Pretending it doesn’t exist leads to surprises — for example, a diff that tries to drop it because it wasn’t in the target schema.</p>
+<h2 id="transaction-safe-ddl-only"><a class="header" href="#transaction-safe-ddl-only">Transaction-safe DDL only</a></h2>
+<p>Every migration runs inside a single transaction. If any statement fails, the entire migration is rolled back and the management table remains consistent.</p>
+<p>This means pgmagmig deliberately avoids statements that cannot run inside a transaction:</p>
+<ul>
+<li><code>CREATE INDEX CONCURRENTLY</code></li>
+<li><code>ALTER TYPE ... ADD VALUE</code></li>
+<li><code>REINDEX CONCURRENTLY</code></li>
+</ul>
+<p>These are genuinely useful in production for large tables, and support for non-transactional migrations is planned as a future extension. But the default is safety: a failed migration leaves no half-applied state.</p>
+<h2 id="hazards-are-structured-not-cosmetic"><a class="header" href="#hazards-are-structured-not-cosmetic">Hazards are structured, not cosmetic</a></h2>
+<p>When pgmagmig generates a diff, destructive or dangerous statements are tagged with a structured hazard type — not a free-text comment. Each hazard has a machine-readable type (<code>DeletesData</code>, <code>AcquiresAccessExclusiveLock</code>, etc.) and a human-readable message.</p>
+<p>This serves two purposes:</p>
+<ol>
+<li><strong>Developer review.</strong> When you draft a migration, the hazard comments in the YAML file tell you exactly what’s risky. You can’t miss a <code>DROP COLUMN</code> buried in a long migration.</li>
+<li><strong>CI gating.</strong> The <code>--check-hazards</code> flag lets you fail a CI pipeline if a migration introduces hazards that haven’t been explicitly acknowledged. This catches accidental destructive changes before they reach production.</li>
+</ol>
+<p>Hazards are a best-effort signal, not a guarantee of completeness. New hazard types may be added over time as the tool learns about more dangerous patterns.</p>
+<h2 id="verification-by-construction"><a class="header" href="#verification-by-construction">Verification by construction</a></h2>
+<p>pgmagmig doesn’t trust its own output. Every diff is automatically verified by applying it to a real PostgreSQL engine and checking the result:</p>
+<pre class="mermaid">flowchart LR
+  from["Schema A\n(from)"]
+  to["Schema B\n(to)"]
+  diff["Differ"]
+  ddl["Generated\nDDL"]
+  pglite["PGlite\nloaded with A"]
+  extract["Extract\nschema"]
+  actual["Actual\nresult"]
+  compare{{"Compare\nfield-by-field"}}
+  ok["✅ Valid"]
+  fail["❌ Rejected"]
+
+  from --&gt; diff
+  to --&gt; diff
+  diff --&gt; ddl
+  from --&gt; pglite
+  ddl --&gt; pglite
+  pglite --&gt; extract
+  extract --&gt; actual
+  actual --&gt; compare
+  to --&gt; compare
+  compare --&gt;|match| ok
+  compare --&gt;|mismatch| fail
+
+  style ok stroke:#5a5,color:#5a5
+  style fail stroke:#e55,color:#e55
+</pre>
+
+<p>If the comparison fails, the diff is rejected. This catches bugs in the differ itself, edge cases in DDL generation, and subtle interactions between schema objects.</p>
+<p>For <code>draft-migration</code>, both directions are validated: the up migration transforms A to B, and the down migration transforms B back to A.</p>
+<h2 id="readable-output"><a class="header" href="#readable-output">Readable output</a></h2>
+<p>pgmagmig’s differ produces DDL that reads like something a human would write. A new table is a single <code>CREATE TABLE</code> statement with columns, defaults, constraints, and NOT NULL inlined — not a bare table followed by twenty <code>ALTER TABLE</code> statements.</p>
+<p>This matters because migration files are reviewed by humans. The easier they are to read, the more likely a reviewer will catch a mistake.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="developer-workflow"><a class="header" href="#developer-workflow">Developer Workflow</a></h1>
+<p>pgmagmig is designed for the day-to-day reality of working on a codebase where multiple developers are making schema changes on different branches.</p>
+<h2 id="the-purpose-of-down-migrations"><a class="header" href="#the-purpose-of-down-migrations">The purpose of down migrations</a></h2>
+<p>A common misconception is that down migrations exist to roll back production deployments. They don’t — or at least, they shouldn’t. If you need to revert a schema change in production, write a <em>new</em> forward migration that undoes the change. This gives you a clear audit trail, a reviewed migration, and the ability to test the rollback before deploying it.</p>
+<p>So what are down migrations for?</p>
+<p><strong>Development.</strong> When you’re working on a feature branch that adds a table, and you need to switch to another branch that doesn’t have that table, pgmagmig rolls back your migration and applies the other branch’s migrations. When you switch back, it rolls back those and reapplies yours. This happens automatically when you run <code>pgmagmig migrate</code> — it compares the migration files on disk to what’s recorded in the database and figures out the minimal set of rollbacks and applies.</p>
+<p><strong>Thinking through reversibility.</strong> Even if you never run a down migration in production, the act of writing one forces you to think about whether your change is reversible. A migration that adds a column has a straightforward reversal (drop the column). A migration that drops a column doesn’t — the data is gone. Writing the down SQL (or explicitly choosing to omit it) is a design decision, not busywork.</p>
+<p><strong>Emergency preparedness.</strong> If something goes wrong in production and you need to undo a migration, the down SQL already exists. You won’t use it directly (you’ll wrap it in a new forward migration), but having the SQL ready is better than writing it under pressure at 3am.</p>
+<h2 id="branch-switching"><a class="header" href="#branch-switching">Branch switching</a></h2>
+<p>The typical development loop:</p>
+<pre><code class="language-bash"># On feature-branch-a, apply its migrations
+pgmagmig migrate \
+  --migrations-dir ./migrations \
+  --database-url postgres://localhost/mydb \
+  --allow-rollback
+
+# Switch to feature-branch-b
+git checkout feature-branch-b
+
+# Migrate again — pgmagmig rolls back branch-a's migrations
+# and applies branch-b's
+pgmagmig migrate \
+  --migrations-dir ./migrations \
+  --database-url postgres://localhost/mydb \
+  --allow-rollback
+</code></pre>
+<p>The <code>--allow-rollback</code> flag is required because down migrations are inherently destructive (they drop tables, columns, etc.). pgmagmig won’t run them unless you explicitly opt in.</p>
+<p>Without <code>--allow-rollback</code>, pgmagmig prints the plan (what it would roll back and apply) and exits with a non-zero status. This is useful in CI where you want to verify the database is in sync without accidentally running destructive operations.</p>
+<h3 id="how-branch-switching-works"><a class="header" href="#how-branch-switching-works">How branch switching works</a></h3>
+<p>When you switch branches, the migration files on disk may diverge from what’s applied in the database. pgmagmig walks both lists in parallel, finds the point where UUIDs stop matching, and rolls back everything beyond that point before applying the new branch’s migrations.</p>
+<pre class="mermaid">block-beta
+  columns 5
+
+  space applied["Applied in DB"] space files["Files on disk"] space
+
+  space:5
+
+  a1["0001 · Create tables\n✅ uuid-aaa"] space:2 f1["0001 · Create tables\n✅ uuid-aaa"] space
+  space m1["match ✓"] space:3
+
+  a2["0002 · Add users\n✅ uuid-bbb"] space:2 f2["0002 · Add users\n✅ uuid-bbb"] space
+  space m2["match ✓"] space:3
+
+  a3["0003 · Add orders\n⬜ uuid-ccc"] space:2 f3["0003 · Add products\n🆕 uuid-ddd"] space
+  space m3["mismatch ✗"] space:3
+
+  space:4 f4["0004 · Add reviews\n🆕 uuid-eee"]
+
+  space:5
+
+  space r1["⬅ rollback 0003\n(uuid-ccc)"] space a4["➡ apply 0003\n(uuid-ddd)"] space
+  space:2 space a5["➡ apply 0004\n(uuid-eee)"] space
+
+  style a3 stroke:#e55,color:#e55
+  style f3 stroke:#5a5,color:#5a5
+  style f4 stroke:#5a5,color:#5a5
+  style r1 stroke:#e55,color:#e55
+  style a4 stroke:#5a5,color:#5a5
+  style a5 stroke:#5a5,color:#5a5
+</pre>
+
+<p>The match point is after 0002. Migration 0003 (uuid-ccc) is rolled back using its stored down SQL, then 0003 (uuid-ddd) and 0004 (uuid-eee) from the new branch are applied.</p>
+<h2 id="drafting-migrations"><a class="header" href="#drafting-migrations">Drafting migrations</a></h2>
+<p>The <code>draft-migration</code> command generates a migration from the diff between your current migrations and a target schema:</p>
+<pre><code class="language-bash">pgmagmig draft-migration \
+  --migrations-dir ./migrations \
+  --to-sql schema.sql \
+  --title "Add orders table" \
+  --allow-hazards all
+</code></pre>
+<p>The generated file includes:</p>
+<ul>
+<li><strong><code>up</code> SQL</strong> — the DDL to apply the change, with <code>-- HAZARD</code> comments on risky statements.</li>
+<li><strong><code>down</code> SQL</strong> — the DDL to reverse the change.</li>
+<li><strong><code>invalid: true</code></strong> — a marker that prevents the migration from being applied until you’ve reviewed it. Remove this line after review.</li>
+</ul>
+<p>Both directions are validated by roundtripping through PGlite.</p>
+<p>If you prefer to write migrations by hand, that works too — the file format is simple YAML.</p>
+<h2 id="using-the-ephemeral-database"><a class="header" href="#using-the-ephemeral-database">Using the ephemeral database</a></h2>
+<p>The <code>run</code> command builds a PGlite database from your migrations and exposes it via Unix socket:</p>
+<pre><code class="language-bash">pgmagmig run \
+  --from-migrations-dir ./migrations \
+  --command "npx prisma db pull"
+</code></pre>
+<p>This is useful for:</p>
+<ul>
+<li><strong>Prisma introspection</strong> against your migration-defined schema.</li>
+<li><strong>Code generation</strong> tools like sqlc or pgtyped.</li>
+<li><strong>Ad-hoc queries</strong> with psql: <code>pgmagmig run --from-migrations-dir ./migrations --command 'psql "$DATABASE_URL"'</code></li>
+</ul>
+<p>The database is ephemeral — it exists only for the duration of the command. No server to start, no port to configure, no cleanup needed.</p>
+<h2 id="ci-integration"><a class="header" href="#ci-integration">CI integration</a></h2>
+<p>A typical CI pipeline:</p>
+<pre><code class="language-bash"># Check that the database is in sync with migrations
+pgmagmig migrate \
+  --migrations-dir ./migrations \
+  --database-url $DATABASE_URL \
+  --check
+
+# Check for unexpected hazards in the latest migration
+pgmagmig diff \
+  --from-migrations-dir ./migrations \
+  --to-sql schema.sql \
+  --check-hazards \
+  --allow-hazards IndexBuild
+</code></pre>
+<p>The <code>--check</code> flag on <code>migrate</code> exits non-zero if any migrations are pending. The <code>--check-hazards</code> flag on <code>diff</code> exits non-zero if the diff produces any hazards not in the allow-list.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="cli-reference"><a class="header" href="#cli-reference">CLI Reference</a></h1>
+<p>pgmagmig provides the following commands:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#extract"><code>extract</code></a></td><td>Apply SQL to PGlite, output JSON schema</td></tr>
+<tr><td><a href="#generate"><code>generate</code></a></td><td>Generate DDL from a schema</td></tr>
+<tr><td><a href="#diff"><code>diff</code></a></td><td>Compare two schemas, output DDL</td></tr>
+<tr><td><a href="#bootstrap"><code>bootstrap</code></a></td><td>Create initial migration file(s)</td></tr>
+<tr><td><a href="#draft-migration"><code>draft-migration</code></a></td><td>Generate a YAML migration from a schema diff</td></tr>
+<tr><td><a href="#migrate"><code>migrate</code></a></td><td>Apply migrations to a PostgreSQL database</td></tr>
+<tr><td><a href="#run"><code>run</code></a></td><td>Build PGlite, expose via socket, run a command</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common patterns</a></h2>
+<p>Most commands accept <a href="#schema-sources-1">schema source</a> options (<code>--from-*</code> and/or <code>--to-*</code>) to specify where to read schemas from.</p>
+<h2 id="error-output"><a class="header" href="#error-output">Error output</a></h2>
+<p>pgmagmig formats PostgreSQL errors cleanly, showing the error code, message, detail, and hint without stack traces:</p>
+<pre><code>ERROR: relation "foo" does not exist
+Code: 42P01
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="extract"><a class="header" href="#extract">extract</a></h1>
+<p>Apply SQL to a PGlite instance, extract the schema, and output it as JSON.</p>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<pre><code class="language-bash">pgmagmig extract --from-sql schema.sql
+pgmagmig extract --from-database postgres://localhost/mydb
+pgmagmig extract --from-migrations-dir ./migrations
+</code></pre>
+<h2 id="options"><a class="header" href="#options">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--from-sql &lt;files...&gt;</code></td><td>SQL files to apply (order matters)</td></tr>
+<tr><td><code>--from-json &lt;file&gt;</code></td><td>JSON schema file</td></tr>
+<tr><td><code>--from-empty</code></td><td>Empty schema</td></tr>
+<tr><td><code>--from-database &lt;url&gt;</code></td><td>Live database (read-only extraction)</td></tr>
+<tr><td><code>--from-migrations-dir &lt;path&gt;</code></td><td>Apply migration files to PGlite</td></tr>
+</tbody>
+</table>
+</div>
+<p>Exactly one <code>--from-*</code> option is required. See <a href="#schema-sources-1">Schema Sources</a>.</p>
+<h2 id="output"><a class="header" href="#output">Output</a></h2>
+<p>JSON representation of the database schema, written to stdout. The output includes tables (with columns and constraints), indexes, views, functions, triggers, enums, sequences, schemas, and extensions.</p>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<pre><code class="language-bash">pgmagmig extract --from-sql schema.sql &gt; schema.json
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="generate"><a class="header" href="#generate">generate</a></h1>
+<p>Generate DDL from a schema. This is an alias for <code>diff --from-empty --to-*</code>.</p>
+<h2 id="usage-1"><a class="header" href="#usage-1">Usage</a></h2>
+<pre><code class="language-bash">pgmagmig generate --to-sql schema.sql
+pgmagmig generate --to-json schema.json
+</code></pre>
+<h2 id="options-1"><a class="header" href="#options-1">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--to-sql &lt;files...&gt;</code></td><td>SQL files defining the target schema</td></tr>
+<tr><td><code>--to-json &lt;file&gt;</code></td><td>JSON schema file</td></tr>
+<tr><td><code>--to-empty</code></td><td>Empty schema (produces no output)</td></tr>
+<tr><td><code>--to-database &lt;url&gt;</code></td><td>Live database</td></tr>
+<tr><td><code>--to-migrations-dir &lt;path&gt;</code></td><td>Migration files</td></tr>
+</tbody>
+</table>
+</div>
+<p>Exactly one <code>--to-*</code> option is required. See <a href="#schema-sources-1">Schema Sources</a>.</p>
+<h2 id="output-1"><a class="header" href="#output-1">Output</a></h2>
+<p>DDL statements written to stdout that would create the entire schema from scratch.</p>
+<h2 id="example-1"><a class="header" href="#example-1">Example</a></h2>
+<pre><code class="language-bash">pgmagmig generate --to-json schema.json &gt; create.sql
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="diff"><a class="header" href="#diff">diff</a></h1>
+<p>Compare two schemas and output the DDL to transform one into the other.</p>
+<h2 id="usage-2"><a class="header" href="#usage-2">Usage</a></h2>
+<pre><code class="language-bash">pgmagmig diff --from-sql old.sql --to-sql new.sql
+pgmagmig diff --from-migrations-dir ./migrations --to-database postgres://localhost/mydb
+pgmagmig diff --from-empty --to-sql schema.sql
+</code></pre>
+<h2 id="options-2"><a class="header" href="#options-2">Options</a></h2>
+<h3 id="schema-sources"><a class="header" href="#schema-sources">Schema sources</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--from-sql &lt;files...&gt;</code></td><td>SQL files for the source schema</td></tr>
+<tr><td><code>--from-json &lt;file&gt;</code></td><td>JSON schema file for the source</td></tr>
+<tr><td><code>--from-empty</code></td><td>Empty source schema</td></tr>
+<tr><td><code>--from-database &lt;url&gt;</code></td><td>Live database as source (read-only)</td></tr>
+<tr><td><code>--from-migrations-dir &lt;path&gt;</code></td><td>Build source from migration files</td></tr>
+<tr><td><code>--to-sql &lt;files...&gt;</code></td><td>SQL files for the target schema</td></tr>
+<tr><td><code>--to-json &lt;file&gt;</code></td><td>JSON schema file for the target</td></tr>
+<tr><td><code>--to-empty</code></td><td>Empty target schema</td></tr>
+<tr><td><code>--to-database &lt;url&gt;</code></td><td>Live database as target (read-only)</td></tr>
+<tr><td><code>--to-migrations-dir &lt;path&gt;</code></td><td>Build target from migration files</td></tr>
+</tbody>
+</table>
+</div>
+<p>Exactly one <code>--from-*</code> and one <code>--to-*</code> option is required.</p>
+<h3 id="behaviour-options"><a class="header" href="#behaviour-options">Behaviour options</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--skip-validation</code></td><td>Skip automatic diff validation via PGlite</td></tr>
+<tr><td><code>--annotated</code></td><td>Include <code>-- HAZARD (type): message</code> comments</td></tr>
+<tr><td><code>--check-hazards</code></td><td>Exit non-zero if any hazards are produced</td></tr>
+<tr><td><code>--allow-hazards &lt;types&gt;</code></td><td>Comma-separated hazard types to allow (or <code>all</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="output-2"><a class="header" href="#output-2">Output</a></h2>
+<p>DDL statements written to stdout. With <code>--annotated</code>, hazard comments appear above their statements.</p>
+<h2 id="validation"><a class="header" href="#validation">Validation</a></h2>
+<p>By default, every diff is validated by applying it to a PGlite instance populated with the “from” schema and comparing the result to the “to” schema. Use <code>--skip-validation</code> to disable this (faster, but no correctness guarantee).</p>
+<h2 id="hazard-gating"><a class="header" href="#hazard-gating">Hazard gating</a></h2>
+<p>When <code>--check-hazards</code> is set, <code>diff</code> exits with status 1 if any statement carries a hazard type not listed in <code>--allow-hazards</code>. This is useful in CI as a tripwire against unexpectedly destructive drift.</p>
+<pre><code class="language-bash"># Fail if the diff contains any hazard except IndexBuild
+pgmagmig diff \
+  --from-migrations-dir ./migrations \
+  --to-sql schema.sql \
+  --check-hazards \
+  --allow-hazards IndexBuild
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="bootstrap"><a class="header" href="#bootstrap">bootstrap</a></h1>
+<p>Create the initial migration file(s) for a new pgmagmig-managed project.</p>
+<h2 id="usage-3"><a class="header" href="#usage-3">Usage</a></h2>
+<pre><code class="language-bash"># Fresh database
+pgmagmig bootstrap --migrations-dir ./migrations
+
+# Existing database
+pgmagmig bootstrap --migrations-dir ./migrations --from-database postgres://localhost/mydb
+pgmagmig bootstrap --migrations-dir ./migrations --from-sql schema.sql
+</code></pre>
+<h2 id="options-3"><a class="header" href="#options-3">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--migrations-dir &lt;path&gt;</code></td><td><strong>(required)</strong> Directory to write migration files</td></tr>
+<tr><td><code>--management-table &lt;name&gt;</code></td><td>Management table name (default: <code>public.schema_migrations</code>)</td></tr>
+<tr><td><code>--from-sql &lt;files...&gt;</code></td><td>Existing schema as SQL files</td></tr>
+<tr><td><code>--from-json &lt;file&gt;</code></td><td>Existing schema as JSON</td></tr>
+<tr><td><code>--from-database &lt;url&gt;</code></td><td>Existing schema from live database (read-only)</td></tr>
+<tr><td><code>--from-migrations-dir &lt;path&gt;</code></td><td>Existing schema from another migrations directory</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="behaviour"><a class="header" href="#behaviour">Behaviour</a></h2>
+<h3 id="without---from--fresh-database"><a class="header" href="#without---from--fresh-database">Without <code>--from-*</code> (fresh database)</a></h3>
+<p>Creates a single file:</p>
+<ul>
+<li><strong><code>0001.yaml</code></strong> — DDL to create the management table, with a down migration (<code>DROP TABLE</code>).</li>
+</ul>
+<p>The file includes a comment explaining how to apply it:</p>
+<pre><code class="language-bash">pgmagmig migrate --migrations-dir ./migrations \
+  --database-url postgres://... \
+  --allow-missing-management-table
+</code></pre>
+<h3 id="with---from--existing-database"><a class="header" href="#with---from--existing-database">With <code>--from-*</code> (existing database)</a></h3>
+<p>Creates two files:</p>
+<ul>
+<li><strong><code>0001.yaml</code></strong> — DDL to create the management table, with no down migration.</li>
+<li><strong><code>0002.yaml</code></strong> — DDL to create the existing schema (everything except the management table), with no down migration.</li>
+</ul>
+<p>The comment in <code>0001.yaml</code> provides copy-pasteable SQL to register both migrations in an existing database:</p>
+<pre><code class="language-sql">CREATE TABLE public.schema_migrations (
+  sequence integer PRIMARY KEY,
+  uuid uuid NOT NULL,
+  title text NOT NULL,
+  down text
+);
+
+INSERT INTO public.schema_migrations (sequence, uuid, title, down) VALUES
+    (1, '&lt;uuid&gt;', 'Create pgmagmig management table', NULL),
+    (2, '&lt;uuid&gt;', 'Existing database schema', NULL);
+</code></pre>
+<p>Run this SQL using your current migration system or manually. After that, the database has the pgmagmig management table with both migrations recorded, and the schema is in sync.</p>
+<p>See <a href="#existing-database">Getting Started: Existing Database</a> for a complete walkthrough.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="draft-migration"><a class="header" href="#draft-migration">draft-migration</a></h1>
+<p>Generate a YAML migration file by diffing the current migrations against a target schema.</p>
+<h2 id="usage-4"><a class="header" href="#usage-4">Usage</a></h2>
+<pre><code class="language-bash">pgmagmig draft-migration \
+  --migrations-dir ./migrations \
+  --to-sql schema.sql \
+  --title "Add orders table" \
+  --allow-hazards all
+</code></pre>
+<h2 id="options-4"><a class="header" href="#options-4">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--migrations-dir &lt;path&gt;</code></td><td><strong>(required)</strong> Migrations directory (used as the “from” schema)</td></tr>
+<tr><td><code>--title &lt;title&gt;</code></td><td><strong>(required)</strong> Human-readable migration title</td></tr>
+<tr><td><code>--to-sql &lt;files...&gt;</code></td><td>Target schema as SQL files</td></tr>
+<tr><td><code>--to-json &lt;file&gt;</code></td><td>Target schema as JSON</td></tr>
+<tr><td><code>--to-empty</code></td><td>Target is empty (generates a “drop everything” migration)</td></tr>
+<tr><td><code>--to-database &lt;url&gt;</code></td><td>Target schema from live database (read-only)</td></tr>
+<tr><td><code>--to-migrations-dir &lt;path&gt;</code></td><td>Target from another migrations directory</td></tr>
+<tr><td><code>--no-invalid</code></td><td>Don’t add the <code>invalid: true</code> marker</td></tr>
+<tr><td><code>--skip-validation</code></td><td>Skip up/down roundtrip validation</td></tr>
+<tr><td><code>--allow-hazards &lt;types&gt;</code></td><td>Comma-separated hazard types to allow (or <code>all</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Exactly one <code>--to-*</code> option is required.</p>
+<h2 id="how-it-works-1"><a class="header" href="#how-it-works-1">How it works</a></h2>
+<ol>
+<li>Builds the “from” schema by applying all existing migrations in <code>--migrations-dir</code> to PGlite.</li>
+<li>Builds the “to” schema from the <code>--to-*</code> source.</li>
+<li>Diffs in both directions: <code>from → to</code> for the up SQL, <code>to → from</code> for the down SQL.</li>
+<li>Validates both directions by roundtripping through PGlite.</li>
+<li>Writes the next sequential YAML file (e.g., <code>0003.yaml</code>).</li>
+</ol>
+<h2 id="the-invalid-marker"><a class="header" href="#the-invalid-marker">The invalid marker</a></h2>
+<p>By default, generated migrations include <code>invalid: true</code>. This prevents them from being applied (by <code>migrate</code> or read by any command that processes the migrations directory) until you’ve reviewed the SQL and removed the marker. Use <code>--no-invalid</code> to skip this.</p>
+<h2 id="hazard-gating-1"><a class="header" href="#hazard-gating-1">Hazard gating</a></h2>
+<p>The command fails if the generated diff contains any hazard types not listed in <code>--allow-hazards</code>. Use <code>--allow-hazards all</code> during development, and more restrictive allow-lists in CI.</p>
+<h2 id="output-3"><a class="header" href="#output-3">Output</a></h2>
+<p>The generated YAML file includes <code>-- HAZARD (type): message</code> comments in the up SQL, so hazards are visible during code review.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="migrate"><a class="header" href="#migrate">migrate</a></h1>
+<p>Apply outstanding migrations to a PostgreSQL database.</p>
+<h2 id="usage-5"><a class="header" href="#usage-5">Usage</a></h2>
+<pre><code class="language-bash">pgmagmig migrate \
+  --migrations-dir ./migrations \
+  --database-url postgres://localhost/mydb
+
+# First run (management table doesn't exist yet)
+pgmagmig migrate \
+  --migrations-dir ./migrations \
+  --database-url postgres://localhost/mydb \
+  --allow-missing-management-table
+
+# Branch switching (requires rollback)
+pgmagmig migrate \
+  --migrations-dir ./migrations \
+  --database-url postgres://localhost/mydb \
+  --allow-rollback
+</code></pre>
+<h2 id="options-5"><a class="header" href="#options-5">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--migrations-dir &lt;path&gt;</code></td><td><strong>(required)</strong> Migrations directory</td></tr>
+<tr><td><code>--management-table &lt;name&gt;</code></td><td>Management table name (default: <code>public.schema_migrations</code>)</td></tr>
+<tr><td><code>--database-url &lt;url&gt;</code></td><td>Database connection URL (or <code>DATABASE_URL</code> env var)</td></tr>
+<tr><td><code>--allow-missing-management-table</code></td><td>Treat a missing management table as zero applied</td></tr>
+<tr><td><code>--allow-rollback</code></td><td>Allow down-migrations (required for branch switching)</td></tr>
+<tr><td><code>--dry-run</code></td><td>Print the plan without executing</td></tr>
+<tr><td><code>--check</code></td><td>Exit non-zero if any migrations are pending</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="how-it-works-2"><a class="header" href="#how-it-works-2">How it works</a></h2>
+<ol>
+<li>Reads all migration files from the directory.</li>
+<li>Reads all applied migrations from the management table.</li>
+<li>Finds the longest prefix where the file UUIDs match the applied UUIDs.</li>
+<li>Everything beyond the match point in the database is rolled back (in reverse order).</li>
+<li>Everything beyond the match point in the files is applied (in order).</li>
+</ol>
+<p>Each migration (up or down) runs in its own transaction. If a migration fails, the transaction is rolled back and the management table remains consistent.</p>
+<h2 id="the-plan-is-always-printed"><a class="header" href="#the-plan-is-always-printed">The plan is always printed</a></h2>
+<p>Before executing, <code>migrate</code> prints what it will do:</p>
+<pre><code>Rollback required (1 migration)
+  rollback: 0003 — Add notifications
+Migrations to apply (2 migrations)
+  apply: 0003 — Add orders table
+  apply: 0004 — Add order items
+</code></pre>
+<p>This happens even with <code>--dry-run</code>, <code>--check</code>, and when rollback is blocked (no <code>--allow-rollback</code>).</p>
+<h2 id="rollback-safety"><a class="header" href="#rollback-safety">Rollback safety</a></h2>
+<p>Down-migrations are often destructive — they drop tables, columns, or data. By default, <code>migrate</code> refuses to run them:</p>
+<pre><code>ERROR: 1 migration(s) need to be rolled back. Down-migrations are often
+destructive. Use --allow-rollback to proceed.
+</code></pre>
+<p>Use <code>--allow-rollback</code> to opt in. This is typically used during development when switching between feature branches.</p>
+<h2 id="ci-usage"><a class="header" href="#ci-usage">CI usage</a></h2>
+<pre><code class="language-bash"># Fail if the database is not in sync with migrations
+pgmagmig migrate \
+  --migrations-dir ./migrations \
+  --database-url $DATABASE_URL \
+  --check
+</code></pre>
+<p>The <code>--check</code> flag prints the plan and exits with status 1 if anything is pending, without modifying the database.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="run"><a class="header" href="#run">run</a></h1>
+<p>Build a PGlite database from a schema source, expose it via Unix socket (or TCP), and run a shell command with <code>DATABASE_URL</code> set.</p>
+<h2 id="usage-6"><a class="header" href="#usage-6">Usage</a></h2>
+<pre><code class="language-bash"># Run Prisma introspection against your migrations
+pgmagmig run \
+  --from-migrations-dir ./migrations \
+  --command "npx prisma db pull"
+
+# Run sqlc against a SQL schema
+pgmagmig run \
+  --from-sql schema.sql \
+  --command "sqlc generate"
+
+# Interactive psql session
+pgmagmig run \
+  --from-migrations-dir ./migrations \
+  --command 'psql "$DATABASE_URL"'
+
+# Use TCP instead of Unix socket
+pgmagmig run \
+  --from-sql schema.sql \
+  --host 127.0.0.1 \
+  --command "my-tool --db-url \$DATABASE_URL"
+</code></pre>
+<h2 id="options-6"><a class="header" href="#options-6">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--command &lt;cmd&gt;</code></td><td><strong>(required)</strong> Shell command to run</td></tr>
+<tr><td><code>--from-sql &lt;files...&gt;</code></td><td>SQL files to apply (preserves data and non-schema statements)</td></tr>
+<tr><td><code>--from-json &lt;file&gt;</code></td><td>JSON schema file</td></tr>
+<tr><td><code>--from-empty</code></td><td>Empty database</td></tr>
+<tr><td><code>--from-database &lt;url&gt;</code></td><td>Extract schema from live database, recreate in PGlite</td></tr>
+<tr><td><code>--from-migrations-dir &lt;path&gt;</code></td><td>Apply migration files to PGlite (preserves raw SQL)</td></tr>
+<tr><td><code>--host &lt;host&gt;</code></td><td>Bind address (enables TCP instead of Unix socket)</td></tr>
+<tr><td><code>--port &lt;port&gt;</code></td><td>TCP port (default: <code>0</code> for ephemeral, only with <code>--host</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Exactly one <code>--from-*</code> option is required.</p>
+<h2 id="connection-mode"><a class="header" href="#connection-mode">Connection mode</a></h2>
+<p><strong>By default</strong>, PGlite is exposed via a Unix domain socket in a temporary directory. This is fast, avoids port conflicts, and works with most PostgreSQL client libraries.</p>
+<p><strong>With <code>--host</code></strong>, PGlite is exposed via TCP on the specified address. Use this for tools that don’t support Unix socket connections.</p>
+<p>The <code>DATABASE_URL</code> environment variable is set accordingly:</p>
+<ul>
+<li>Unix socket: <code>postgresql://postgres:postgres@/postgres?host=/tmp/pgmagmig-XXXXXX</code></li>
+<li>TCP: <code>postgresql://postgres:postgres@127.0.0.1:PORT/postgres</code></li>
+</ul>
+<h2 id="sql-preservation"><a class="header" href="#sql-preservation">SQL preservation</a></h2>
+<p>For <code>--from-sql</code> and <code>--from-migrations-dir</code>, the raw SQL is applied directly to PGlite. This preserves INSERT statements, GRANTs, and other non-schema SQL. For other sources (<code>--from-json</code>, <code>--from-database</code>), the schema is extracted and regenerated as DDL.</p>
+<h2 id="exit-code"><a class="header" href="#exit-code">Exit code</a></h2>
+<p>The command’s exit code is propagated:</p>
+<ul>
+<li>Child exits normally → pgmagmig exits with the same code.</li>
+<li>Child killed by a signal → pgmagmig exits with <code>128 + signal number</code>.</li>
+</ul>
+<h2 id="signal-handling"><a class="header" href="#signal-handling">Signal handling</a></h2>
+<p><code>SIGINT</code> and <code>SIGTERM</code> received by pgmagmig are forwarded to the child process. After the child exits, the PGlite instance and socket are cleaned up.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="schema-sources-1"><a class="header" href="#schema-sources-1">Schema Sources</a></h1>
+<p>Most pgmagmig commands accept <code>--from-*</code> and/or <code>--to-*</code> options to specify where to read a schema from. Exactly one source must be given per side.</p>
+<h2 id="available-sources"><a class="header" href="#available-sources">Available sources</a></h2>
+<h3 id="--from-sql-files----to-sql-files"><a class="header" href="#--from-sql-files----to-sql-files"><code>--from-sql &lt;files...&gt;</code> / <code>--to-sql &lt;files...&gt;</code></a></h3>
+<p>Read one or more SQL files and apply them in order to a PGlite instance. The resulting schema is extracted from PGlite’s system catalogs.</p>
+<p>Order matters — if <code>02-tables.sql</code> references a type defined in <code>01-types.sql</code>, list them in that order.</p>
+<pre><code class="language-bash">pgmagmig diff --from-sql 01-types.sql 02-tables.sql --to-sql new-schema.sql
+</code></pre>
+<h3 id="--from-json-file----to-json-file"><a class="header" href="#--from-json-file----to-json-file"><code>--from-json &lt;file&gt;</code> / <code>--to-json &lt;file&gt;</code></a></h3>
+<p>Read a JSON schema file, as produced by <code>pgmagmig extract</code>.</p>
+<pre><code class="language-bash">pgmagmig extract --from-sql schema.sql &gt; schema.json
+pgmagmig diff --from-json old.json --to-json new.json
+</code></pre>
+<h3 id="--from-empty----to-empty"><a class="header" href="#--from-empty----to-empty"><code>--from-empty</code> / <code>--to-empty</code></a></h3>
+<p>An empty schema containing only the <code>public</code> schema (which PostgreSQL always has).</p>
+<pre><code class="language-bash"># Generate DDL for a complete schema (from nothing to everything)
+pgmagmig diff --from-empty --to-sql schema.sql
+</code></pre>
+<h3 id="--from-database-url----to-database-url"><a class="header" href="#--from-database-url----to-database-url"><code>--from-database &lt;url&gt;</code> / <code>--to-database &lt;url&gt;</code></a></h3>
+<p>Connect to a live PostgreSQL database and extract its schema. The connection uses <code>BEGIN READ ONLY</code> followed by <code>ROLLBACK</code> — nothing is written.</p>
+<pre><code class="language-bash">pgmagmig diff --from-database postgres://localhost/prod --to-sql schema.sql
+</code></pre>
+<h3 id="--from-migrations-dir-path----to-migrations-dir-path"><a class="header" href="#--from-migrations-dir-path----to-migrations-dir-path"><code>--from-migrations-dir &lt;path&gt;</code> / <code>--to-migrations-dir &lt;path&gt;</code></a></h3>
+<p>Read all YAML migration files from the directory, apply their <code>up</code> SQL in order to a PGlite instance, and extract the resulting schema.</p>
+<p>All migration files must be valid — any file with <code>invalid: true</code> causes an immediate error.</p>
+<pre><code class="language-bash">pgmagmig diff --from-migrations-dir ./migrations --to-sql schema.sql
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="migration-files"><a class="header" href="#migration-files">Migration Files</a></h1>
+<p>Migrations are YAML files stored in a directory. They are named sequentially: <code>0001.yaml</code>, <code>0002.yaml</code>, <code>0003.yaml</code>, and so on.</p>
+<h2 id="format"><a class="header" href="#format">Format</a></h2>
+<pre><code class="language-yaml">title: Create users table
+uuid: 7f3b2a1e-8c4d-4e5f-9a6b-1c2d3e4f5a6b
+up: |
+  CREATE TABLE public.users (
+    id SERIAL NOT NULL,
+    email text NOT NULL,
+    CONSTRAINT users_pkey PRIMARY KEY (id),
+    CONSTRAINT users_email_key UNIQUE (email)
+  );
+down: |
+  DROP TABLE public.users;
+</code></pre>
+<h2 id="fields"><a class="header" href="#fields">Fields</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Required</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>title</code></td><td>yes</td><td>Human-readable description of the migration</td></tr>
+<tr><td><code>uuid</code></td><td>yes</td><td>Unique identifier (UUID v4). Defines the migration’s identity for matching against the management table.</td></tr>
+<tr><td><code>up</code></td><td>yes</td><td>SQL statements to apply the migration</td></tr>
+<tr><td><code>down</code></td><td>no</td><td>SQL statements to reverse the migration (see below)</td></tr>
+<tr><td><code>invalid</code></td><td>no</td><td>If <code>true</code>, all commands refuse to process this file</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="the-down-field-three-states"><a class="header" href="#the-down-field-three-states">The <code>down</code> field: three states</a></h2>
+<p>The <code>down</code> field has three distinct states with different runtime behaviour:</p>
+<ul>
+<li><strong>Present with SQL</strong> (<code>down: "DROP TABLE users;"</code>) — the runner executes this SQL when rolling back.</li>
+<li><strong>Present but empty</strong> (<code>down: ""</code> or <code>down:</code>) — rollback is a no-op. The row is removed from the management table, but no SQL is executed. Use this when a migration can’t be meaningfully reversed but you want to allow the runner to proceed past it.</li>
+<li><strong>Omitted</strong> (no <code>down</code> key at all) — the runner errors if rollback is attempted. Use this for migrations that are truly irreversible, like dropping a table with data that can’t be recreated.</li>
+</ul>
+<p>In the management table, these map to: a SQL string, an empty string, and <code>NULL</code>, respectively.</p>
+<h2 id="the-invalid-marker-1"><a class="header" href="#the-invalid-marker-1">The <code>invalid</code> marker</a></h2>
+<p>When <code>draft-migration</code> generates a file, it includes <code>invalid: true</code> by default. This is a safety net: the generated SQL should be reviewed by a human before it’s applied. Any command that reads migration files (including <code>migrate</code>, <code>diff --from-migrations-dir</code>, and <code>run --from-migrations-dir</code>) errors immediately if it encounters an invalid file.</p>
+<p>After reviewing the SQL, remove the <code>invalid: true</code> line (or the entire <code>invalid</code> field).</p>
+<p>Use <code>--no-invalid</code> on <code>draft-migration</code> to skip the marker if you trust the output.</p>
+<h2 id="sequential-numbering"><a class="header" href="#sequential-numbering">Sequential numbering</a></h2>
+<p>Files must be numbered consecutively starting at 1. Any gap is an error: if <code>0001.yaml</code> and <code>0003.yaml</code> exist but <code>0002.yaml</code> doesn’t, all commands refuse to proceed.</p>
+<p>This is deliberate — see <a href="#migration-philosophy">Migration Philosophy</a> for the rationale.</p>
+<h2 id="uuid-identity"><a class="header" href="#uuid-identity">UUID identity</a></h2>
+<p>The UUID field, not the filename, defines a migration’s identity. When the runner compares migration files to the management table, it matches by UUID at each sequence position. If the UUID at position 3 in the files doesn’t match the UUID at position 3 in the database, everything from position 3 onward is rolled back and reapplied.</p>
+<p>This enables branch switching: when you check out a different branch with different migrations, the UUIDs diverge and the runner handles the transition automatically.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="hazards"><a class="header" href="#hazards">Hazards</a></h1>
+<p>When pgmagmig generates a schema diff, it tags statements that are destructive, lock-heavy, or potentially dangerous with structured <strong>hazard</strong> annotations. Each hazard has a machine-readable type and a human-readable message.</p>
+<h2 id="hazard-types"><a class="header" href="#hazard-types">Hazard types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Type</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>DeletesData</code></td><td>Destroys user data. Includes <code>DROP TABLE</code>, <code>DROP COLUMN</code>, and generation-state changes that require dropping and recreating a column.</td></tr>
+<tr><td><code>AcquiresAccessExclusiveLock</code></td><td>Acquires an ACCESS EXCLUSIVE lock, blocking all reads and writes on the table. Includes <code>ALTER COLUMN TYPE</code> and <code>SET EXPRESSION</code> (which recomputes stored values).</td></tr>
+<tr><td><code>AcquiresShareLock</code></td><td>Acquires a SHARE lock, blocking writes but not reads.</td></tr>
+<tr><td><code>AcquiresShareRowExclusiveLock</code></td><td>Acquires a SHARE ROW EXCLUSIVE lock, blocking concurrent DDL.</td></tr>
+<tr><td><code>RequiresPopulatedTableScan</code></td><td>Scans the entire table to validate a constraint. Includes <code>SET NOT NULL</code>.</td></tr>
+<tr><td><code>IndexDropped</code></td><td>Drops an index, which may degrade query performance.</td></tr>
+<tr><td><code>IndexBuild</code></td><td>Builds an index, which may take a long time on large tables.</td></tr>
+<tr><td><code>ImpactsDatabasePerformance</code></td><td>A general performance impact, such as a table rewrite.</td></tr>
+<tr><td><code>Correctness</code></td><td>May silently break application behaviour. Includes adding a <code>NOT NULL</code> column without a default to a table that may have existing rows.</td></tr>
+<tr><td><code>HasUntrackableDependencies</code></td><td>Drops an object that other objects may depend on, such as a function, view, type, or sequence.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="where-hazards-appear"><a class="header" href="#where-hazards-appear">Where hazards appear</a></h2>
+<h3 id="in-migration-files"><a class="header" href="#in-migration-files">In migration files</a></h3>
+<p>The <code>draft-migration</code> command includes <code>-- HAZARD (type): message</code> comments in the <code>up</code> SQL:</p>
+<pre><code class="language-yaml">up: |
+  -- HAZARD (DeletesData): deletes all data in column public.users.old_email
+  ALTER TABLE public.users DROP COLUMN old_email;
+  -- HAZARD (IndexBuild): builds index public.idx_users_name
+  CREATE INDEX idx_users_name ON public.users USING btree (name);
+</code></pre>
+<p>These comments are preserved in the migration file for code review visibility.</p>
+<h3 id="in-diff-output"><a class="header" href="#in-diff-output">In diff output</a></h3>
+<p>With <code>pgmagmig diff --annotated</code>, hazard comments appear above their statements in the DDL output.</p>
+<h3 id="in-the-structured-api"><a class="header" href="#in-the-structured-api">In the structured API</a></h3>
+<p><code>diffSchemaStatements(from, to)</code> returns <code>Statement[]</code> where each statement carries a <code>hazards: Hazard[]</code> array. Programmatic consumers can filter, block, or report on specific hazard types.</p>
+<h2 id="hazard-gating-2"><a class="header" href="#hazard-gating-2">Hazard gating</a></h2>
+<h3 id="draft-migration-1"><a class="header" href="#draft-migration-1">draft-migration</a></h3>
+<p>Fails if the diff produces any hazard types not listed in <code>--allow-hazards</code>:</p>
+<pre><code class="language-bash"># Allow only IndexBuild hazards
+pgmagmig draft-migration \
+  --migrations-dir ./migrations \
+  --to-sql schema.sql \
+  --title "Add index" \
+  --allow-hazards IndexBuild
+
+# Allow all hazards
+pgmagmig draft-migration ... --allow-hazards all
+</code></pre>
+<h3 id="diff-check-hazards"><a class="header" href="#diff-check-hazards">diff –check-hazards</a></h3>
+<p>Exits non-zero if any hazards are present and not in the allow-list:</p>
+<pre><code class="language-bash"># CI: fail if the diff is destructive
+pgmagmig diff \
+  --from-migrations-dir ./migrations \
+  --to-sql schema.sql \
+  --check-hazards \
+  --allow-hazards IndexBuild
+</code></pre>
+<h3 id="migrate-1"><a class="header" href="#migrate-1">migrate</a></h3>
+<p>Does <strong>not</strong> gate on hazards. Hazard review happens at draft time; the <code>invalid: true</code> marker forces human review before a migration can be applied.</p>
+<h2 id="completeness"><a class="header" href="#completeness">Completeness</a></h2>
+<p>The hazard mapping is illustrative, not exhaustive. The canonical set of hazard-tagged patterns lives in the diff implementation and will grow over time. The goal is a reasonable best-effort to surface risk, not a guarantee that every dangerous operation is flagged.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
