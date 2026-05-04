@@ -1,27 +1,22 @@
 import { PGlite } from "@electric-sql/pglite";
-import { describe, expect, it } from "vitest";
-import { diffSchema, diffSchemaStatements } from "../src/diff.js";
-import { extractSchema } from "../src/extract.js";
-import { splitSql } from "../src/split-sql.js";
-import type { DatabaseSchema } from "../src/types.js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { diffSchema } from "../src/diff.js";
 import { emptySchema } from "../src/types.js";
 import { validateDiff } from "../src/validate.js";
+import { schemaFromSql, applyDiffAndExtract } from "./helpers.js";
+import { compareSchemas } from "../src/validate.js";
 
-async function schemaFromSql(sql: string): Promise<DatabaseSchema> {
-  const db = new PGlite();
-  try {
-    for (const stmt of splitSql(sql)) await db.query(stmt);
-    return await extractSchema(db);
-  } finally {
-    await db.close();
-  }
-}
+let db: PGlite;
+beforeAll(async () => { db = new PGlite(); });
+afterAll(async () => { await db.close(); });
 
 async function expectValidDiff(fromSql: string, toSql: string) {
-  const from = fromSql ? await schemaFromSql(fromSql) : emptySchema();
-  const to = toSql ? await schemaFromSql(toSql) : emptySchema();
+  const from = fromSql ? await schemaFromSql(db, fromSql) : emptySchema();
+  const to = toSql ? await schemaFromSql(db, toSql) : emptySchema();
   const ddl = diffSchema(from, to);
-  const errors = await validateDiff(from, to, ddl);
+  // Validate by applying from + diff and comparing to expected
+  const applied = await applyDiffAndExtract(db, fromSql, ddl);
+  const errors = compareSchemas(applied, to);
   if (errors.length > 0) {
     const msg = errors.map((e) => `  ${e.message}`).join("\n");
     throw new Error(`Validation errors:\n${msg}\n\nDDL was:\n${ddl}`);

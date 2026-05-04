@@ -1,44 +1,22 @@
 import { PGlite } from "@electric-sql/pglite";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { diffSchema, diffSchemaAnnotated, diffSchemaStatements } from "../src/diff.js";
-import { extractSchema } from "../src/extract.js";
-import { splitSql } from "../src/split-sql.js";
 import type { DatabaseSchema } from "../src/types.js";
+import { schemaFromSql, applyDiffAndExtract } from "./helpers.js";
 
-async function schemaFromSql(sql: string): Promise<DatabaseSchema> {
-  const db = new PGlite();
-  try {
-    for (const stmt of splitSql(sql)) {
-      await db.query(stmt);
-    }
-    return await extractSchema(db);
-  } finally {
-    await db.close();
-  }
-}
+let db: PGlite;
+beforeAll(async () => { db = new PGlite(); });
+afterAll(async () => { await db.close(); });
 
 async function applyDiff(
   fromSql: string,
   toSql: string,
 ): Promise<{ from: DatabaseSchema; to: DatabaseSchema; applied: DatabaseSchema; ddl: string }> {
-  const from = await schemaFromSql(fromSql);
-  const to = await schemaFromSql(toSql);
+  const from = await schemaFromSql(db, fromSql);
+  const to = await schemaFromSql(db, toSql);
   const ddl = diffSchema(from, to);
-
-  // Apply the diff to a PGlite with the "from" schema
-  const db = new PGlite();
-  try {
-    for (const stmt of splitSql(fromSql)) {
-      await db.query(stmt);
-    }
-    for (const stmt of splitSql(ddl)) {
-      await db.query(stmt);
-    }
-    const applied = await extractSchema(db);
-    return { from, to, applied, ddl };
-  } finally {
-    await db.close();
-  }
+  const applied = await applyDiffAndExtract(db, fromSql, ddl);
+  return { from, to, applied, ddl };
 }
 
 function expectTablesMatch(a: DatabaseSchema, b: DatabaseSchema) {
@@ -61,8 +39,8 @@ function expectTablesMatch(a: DatabaseSchema, b: DatabaseSchema) {
 describe("diffSchema", () => {
   it("produces empty diff for identical schemas", async () => {
     const sql = "CREATE TABLE t (id integer PRIMARY KEY, name text)";
-    const from = await schemaFromSql(sql);
-    const to = await schemaFromSql(sql);
+    const from = await schemaFromSql(db, sql);
+    const to = await schemaFromSql(db, sql);
     expect(diffSchemaStatements(from, to)).toEqual([]);
   });
 
@@ -75,8 +53,8 @@ describe("diffSchema", () => {
   });
 
   it("drops a table with hazard", async () => {
-    const from = await schemaFromSql("CREATE TABLE users (id integer)");
-    const to = await schemaFromSql("");
+    const from = await schemaFromSql(db, "CREATE TABLE users (id integer)");
+    const to = await schemaFromSql(db, "");
     const stmts = diffSchemaStatements(from, to);
     const drop = stmts.find((s) => s.ddl.includes("DROP TABLE"));
     expect(drop).toBeDefined();
@@ -92,8 +70,8 @@ describe("diffSchema", () => {
   });
 
   it("drops a column with hazard", async () => {
-    const from = await schemaFromSql("CREATE TABLE t (id integer, name text)");
-    const to = await schemaFromSql("CREATE TABLE t (id integer)");
+    const from = await schemaFromSql(db, "CREATE TABLE t (id integer, name text)");
+    const to = await schemaFromSql(db, "CREATE TABLE t (id integer)");
     const stmts = diffSchemaStatements(from, to);
     const drop = stmts.find((s) => s.ddl.includes("DROP COLUMN"));
     expect(drop).toBeDefined();
@@ -264,8 +242,8 @@ describe("diffSchema", () => {
   });
 
   it("annotated output includes hazard comments", async () => {
-    const from = await schemaFromSql("CREATE TABLE t (id integer, name text)");
-    const to = await schemaFromSql("CREATE TABLE t (id integer)");
+    const from = await schemaFromSql(db, "CREATE TABLE t (id integer, name text)");
+    const to = await schemaFromSql(db, "CREATE TABLE t (id integer)");
     const annotated = diffSchemaAnnotated(from, to);
     expect(annotated).toContain("-- HAZARD (DeletesData)");
     expect(annotated).toContain("DROP COLUMN");
@@ -289,8 +267,8 @@ describe("diffSchema", () => {
   });
 
   it("SET NOT NULL has RequiresPopulatedTableScan hazard", async () => {
-    const from = await schemaFromSql("CREATE TABLE t (name text)");
-    const to = await schemaFromSql("CREATE TABLE t (name text NOT NULL)");
+    const from = await schemaFromSql(db, "CREATE TABLE t (name text)");
+    const to = await schemaFromSql(db, "CREATE TABLE t (name text NOT NULL)");
     const stmts = diffSchemaStatements(from, to);
     const setNotNull = stmts.find((s) => s.ddl.includes("SET NOT NULL"));
     expect(setNotNull).toBeDefined();
@@ -298,8 +276,8 @@ describe("diffSchema", () => {
   });
 
   it("ALTER COLUMN TYPE has AcquiresAccessExclusiveLock hazard", async () => {
-    const from = await schemaFromSql("CREATE TABLE t (val integer)");
-    const to = await schemaFromSql("CREATE TABLE t (val bigint)");
+    const from = await schemaFromSql(db, "CREATE TABLE t (val integer)");
+    const to = await schemaFromSql(db, "CREATE TABLE t (val bigint)");
     const stmts = diffSchemaStatements(from, to);
     const alter = stmts.find((s) => s.ddl.includes("TYPE bigint"));
     expect(alter).toBeDefined();

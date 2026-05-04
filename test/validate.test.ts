@@ -1,23 +1,16 @@
 import { PGlite } from "@electric-sql/pglite";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { diffSchema } from "../src/diff.js";
 import { extractSchema } from "../src/extract.js";
-import { splitSql } from "../src/split-sql.js";
-import type { DatabaseSchema } from "../src/types.js";
 import { emptySchema } from "../src/types.js";
 import { validateDiff } from "../src/validate.js";
+import { schemaFromSql as _schemaFromSql } from "./helpers.js";
 
-async function schemaFromSql(sql: string): Promise<DatabaseSchema> {
-  const db = new PGlite();
-  try {
-    for (const stmt of splitSql(sql)) {
-      await db.query(stmt);
-    }
-    return await extractSchema(db);
-  } finally {
-    await db.close();
-  }
-}
+let db: PGlite;
+beforeAll(async () => { db = new PGlite(); });
+afterAll(async () => { await db.close(); });
+
+const schemaFromSql = (sql: string) => _schemaFromSql(db, sql);
 
 describe("validateDiff", () => {
   it("returns no errors for a correct diff (empty → schema)", async () => {

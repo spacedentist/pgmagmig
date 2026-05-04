@@ -1,37 +1,22 @@
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { extractSchema } from "../src/extract.js";
 import { generateDdl, generateDdlStatements } from "../src/generate.js";
-import { splitSql } from "../src/split-sql.js";
 import type { DatabaseSchema } from "../src/types.js";
 import { emptySchema } from "../src/types.js";
+import { schemaFromSql } from "./helpers.js";
+
+let db: PGlite;
+beforeAll(async () => { db = new PGlite(); });
+afterAll(async () => { await db.close(); });
 
 async function roundtrip(inputSql: string): Promise<{
   original: DatabaseSchema;
   regenerated: DatabaseSchema;
 }> {
-  const db1 = new PGlite();
-  try {
-    for (const stmt of splitSql(inputSql)) {
-      await db1.query(stmt);
-    }
-    const original = await extractSchema(db1);
-
-    const ddl = generateDdl(original);
-
-    const db2 = new PGlite();
-    try {
-      for (const stmt of splitSql(ddl)) {
-        await db2.query(stmt);
-      }
-      const regenerated = await extractSchema(db2);
-      return { original, regenerated };
-    } finally {
-      await db2.close();
-    }
-  } finally {
-    await db1.close();
-  }
+  const original = await schemaFromSql(db, inputSql);
+  const ddl = generateDdl(original);
+  const regenerated = await schemaFromSql(db, ddl);
+  return { original, regenerated };
 }
 
 function compareSchemasLoosely(a: DatabaseSchema, b: DatabaseSchema) {

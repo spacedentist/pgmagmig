@@ -40,7 +40,7 @@ export async function validateDiff(
   }
 }
 
-function compareSchemas(
+export function compareSchemas(
   actual: DatabaseSchema,
   expected: DatabaseSchema,
 ): ValidationError[] {
