@@ -143,12 +143,14 @@ function toOpts(opts: Record<string, unknown>): SchemaSourceOpts {
 // Commands
 // ---------------------------------------------------------------------------
 
+declare const __VERSION__: string;
+
 const program = new Command();
 
 program
   .name("pgmagmig")
   .description("PostgreSQL migration tool with integrated schema differ, powered by PGlite")
-  .version("0.0.1");
+  .version(__VERSION__);
 
 // --- extract ---
 
