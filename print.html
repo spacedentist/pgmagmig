@@ -16,8 +16,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-57143d9c.js";
+            window.path_to_searchindex_js = "searchindex-43ae803c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9cbc7df4.js"></script>
+        <script src="toc-5a2516f7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -808,15 +808,54 @@ pgmagmig migrate \
 <li>Everything beyond the match point in the files is applied (in order).</li>
 </ol>
 <p>Each migration (up or down) runs in its own transaction. If a migration fails, the transaction is rolled back and the management table remains consistent.</p>
-<h2 id="the-plan-is-always-printed"><a class="header" href="#the-plan-is-always-printed">The plan is always printed</a></h2>
-<p>Before executing, <code>migrate</code> prints what it will do:</p>
-<pre><code>Rollback required (1 migration)
-  rollback: 0003 — Add notifications
-Migrations to apply (2 migrations)
-  apply: 0003 — Add orders table
-  apply: 0004 — Add order items
+<h2 id="migration-plan"><a class="header" href="#migration-plan">Migration plan</a></h2>
+<p>Before executing, <code>migrate</code> prints a plan to stderr showing what it will do:</p>
+<pre><code>pgmagmig: migration plan
+
+  rollback 0003 Add notifications
+  apply    0003 Add orders table
+  apply    0004 Add order items
+
+1 migration to roll back, 2 migrations to apply
 </code></pre>
-<p>This happens even with <code>--dry-run</code>, <code>--check</code>, and when rollback is blocked (no <code>--allow-rollback</code>).</p>
+<p>This happens even with <code>--dry-run</code>, <code>--check</code>, and when rollback is blocked (no <code>--allow-rollback</code>). When the database is already up to date, no plan is printed — just the summary.</p>
+<h2 id="execution-output"><a class="header" href="#execution-output">Execution output</a></h2>
+<p>During execution, every SQL statement is printed before it runs. This includes transaction control (<code>BEGIN</code>, <code>COMMIT</code>) and management table writes, giving full visibility into what happens on the database. After each statement, the execution time is shown:</p>
+<pre><code>-- 0003 Add orders table
+
+  [1/5] BEGIN
+        ok (1ms)
+  [2/5] CREATE TABLE public.orders (
+          id integer NOT NULL,
+          user_id integer NOT NULL
+        )
+        ok (4ms)
+  [3/5] ALTER TABLE public.orders ADD CONSTRAINT orders_pkey PRIMARY KEY (id)
+        ok (2ms)
+  [4/5] INSERT INTO public.schema_migrations (sequence, uuid, title, down) VALUES (...)
+        ok (1ms)
+  [5/5] COMMIT
+        ok (0ms)
+
+-- 0003 done (38ms)
+</code></pre>
+<p>The <code>[N/M]</code> counter shows which statement is running. Multi-line SQL is displayed in full, with continuation lines indented to align with the first. The <code>done</code> line shows the wall-clock time for the entire migration.</p>
+<p>When all migrations complete, a summary is printed to stdout:</p>
+<pre><code>pgmagmig: 2 applied
+</code></pre>
+<p>Or with rollbacks:</p>
+<pre><code>pgmagmig: 1 rolled back, 2 applied
+</code></pre>
+<h2 id="error-output-1"><a class="header" href="#error-output-1">Error output</a></h2>
+<p>If a statement fails, the error is shown with the PostgreSQL error code and message:</p>
+<pre><code>  [2/5] CREATE TABLE public.orders (id integer REFERENCES nonexistent(id))
+        FAILED
+
+ERROR in 0003 "Add orders table", statement 2/5
+  Code:    42P01
+  Message: relation "nonexistent" does not exist
+</code></pre>
+<p>Detail, hint, and context are included when the database provides them. No further migrations are executed after an error.</p>
 <h2 id="rollback-safety"><a class="header" href="#rollback-safety">Rollback safety</a></h2>
 <p>Down-migrations are often destructive — they drop tables, columns, or data. By default, <code>migrate</code> refuses to run them:</p>
 <pre><code>ERROR: 1 migration(s) need to be rolled back. Down-migrations are often
@@ -1066,11 +1105,11 @@ pgmagmig diff \
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="mermaid-eefea253.min.js"></script>
