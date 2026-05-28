@@ -1,4 +1,4 @@
-import type { Logger } from "pino";
+import { performance } from "node:perf_hooks";
 import { splitSql } from "./split-sql.js";
 import type { MigrationFile, Queryable } from "./types.js";
 
@@ -114,7 +114,6 @@ export async function migrate(opts: {
   allowRollback?: boolean;
   dryRun?: boolean;
   check?: boolean;
-  logger?: Logger;
 }): Promise<MigrationResult & { pending: boolean; rollbackRequired: boolean }> {
   validateManagementTableName(opts.managementTable);
 
@@ -129,33 +128,16 @@ export async function migrate(opts: {
     plan.toRollback.length > 0 || plan.toApply.length > 0;
   const rollbackRequired = plan.toRollback.length > 0;
 
-  // Always print the plan
-  if (plan.toRollback.length > 0) {
-    opts.logger?.info(
-      { count: plan.toRollback.length },
-      "Rollback required",
-    );
-    for (const m of plan.toRollback) {
-      opts.logger?.info(
-        { sequence: m.sequence, title: m.title },
-        "  rollback",
-      );
-    }
-  }
-  if (plan.toApply.length > 0) {
-    opts.logger?.info(
-      { count: plan.toApply.length },
-      "Migrations to apply",
-    );
-    for (const m of plan.toApply) {
-      opts.logger?.info(
-        { sequence: m.sequence, title: m.title },
-        "  apply",
-      );
-    }
+  if (!pending) {
+    console.log("pgmagmig: up to date");
+    return { rolledBack: [], applied: [], pending, rollbackRequired };
   }
 
-  // Stop if dry-run, check, or rollback not allowed
+  // Print plan
+  const mode = opts.dryRun ? "dry run" : opts.check ? "check" : null;
+  printPlan(plan, mode);
+
+  // Stop if dry-run or check
   if (opts.dryRun || opts.check) {
     return { rolledBack: [], applied: [], pending, rollbackRequired };
   }
@@ -173,45 +155,78 @@ export async function migrate(opts: {
         `Cannot roll back migration ${m.sequence} (${m.title}): no down migration available`,
       );
     }
-    opts.logger?.info(
-      { sequence: m.sequence, title: m.title },
-      "Rolling back",
-    );
-    await withTransaction(opts.db, opts.logger, async (db) => {
-      // DELETE first, then execute down SQL
-      await execAndLog(
-        db,
-        opts.logger,
-        `DELETE FROM ${opts.managementTable} WHERE sequence = ${m.sequence}`,
-      );
-      if (m.down !== "") {
-        for (const stmt of splitSql(m.down!)) {
-          await execAndLog(db, opts.logger, stmt);
-        }
+
+    const deleteSql =
+      `DELETE FROM ${opts.managementTable} WHERE sequence = ${m.sequence}`;
+    const userStmts = m.down === "" ? [] : splitSql(m.down);
+    const allStmts = ["BEGIN", deleteSql, ...userStmts, "COMMIT"];
+
+    console.error(`\n-- ${fmtSeq(m.sequence)} ${m.title}\n`);
+    const migrationStart = performance.now();
+    let stmtIndex = 0;
+
+    try {
+      for (stmtIndex = 0; stmtIndex < allStmts.length; stmtIndex++) {
+        await execWithProgress(opts.db, allStmts[stmtIndex], stmtIndex + 1, allStmts.length);
       }
-    });
+    } catch (err) {
+      await opts.db.query("ROLLBACK").catch(() => {});
+      console.error(
+        "\n" + formatPgError(err, m.sequence, m.title, stmtIndex + 1, allStmts.length),
+      );
+      throw new MigrationError(
+        `Migration ${fmtSeq(m.sequence)} failed`,
+        err,
+      );
+    }
+
+    console.error(
+      `\n-- ${fmtSeq(m.sequence)} done (${fmtDuration(performance.now() - migrationStart)})`,
+    );
     result.rolledBack.push(m);
   }
 
   // Apply
   for (const m of plan.toApply) {
-    opts.logger?.info(
-      { sequence: m.sequence, title: m.title },
-      "Applying",
-    );
-    await withTransaction(opts.db, opts.logger, async (db) => {
-      // Execute up SQL, then INSERT
-      for (const stmt of splitSql(m.up)) {
-        await execAndLog(db, opts.logger, stmt);
+    const userStmts = splitSql(m.up);
+    const insertSql =
+      `INSERT INTO ${opts.managementTable} (sequence, uuid, title, down) VALUES (${m.sequence}, '${m.uuid}', ${escapeSqlString(m.title)}, ${m.down === null ? "NULL" : escapeSqlString(m.down)})`;
+    const allStmts = ["BEGIN", ...userStmts, insertSql, "COMMIT"];
+
+    console.error(`\n-- ${fmtSeq(m.sequence)} ${m.title}\n`);
+    const migrationStart = performance.now();
+    let stmtIndex = 0;
+
+    try {
+      for (stmtIndex = 0; stmtIndex < allStmts.length; stmtIndex++) {
+        await execWithProgress(opts.db, allStmts[stmtIndex], stmtIndex + 1, allStmts.length);
       }
-      await execAndLog(
-        db,
-        opts.logger,
-        `INSERT INTO ${opts.managementTable} (sequence, uuid, title, down) VALUES (${m.sequence}, '${m.uuid}', ${escapeSqlString(m.title)}, ${m.down === null ? "NULL" : escapeSqlString(m.down)})`,
+    } catch (err) {
+      await opts.db.query("ROLLBACK").catch(() => {});
+      console.error(
+        "\n" + formatPgError(err, m.sequence, m.title, stmtIndex + 1, allStmts.length),
       );
-    });
+      throw new MigrationError(
+        `Migration ${fmtSeq(m.sequence)} failed`,
+        err,
+      );
+    }
+
+    console.error(
+      `\n-- ${fmtSeq(m.sequence)} done (${fmtDuration(performance.now() - migrationStart)})`,
+    );
     result.applied.push(m);
   }
+
+  // Final summary to stdout
+  const parts: string[] = [];
+  if (result.rolledBack.length > 0) {
+    parts.push(`${result.rolledBack.length} rolled back`);
+  }
+  if (result.applied.length > 0) {
+    parts.push(`${result.applied.length} applied`);
+  }
+  console.log(`pgmagmig: ${parts.join(", ")}`);
 
   return { ...result, pending, rollbackRequired };
 }
@@ -231,34 +246,115 @@ export class RollbackRequiredError extends Error {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function withTransaction(
-  db: Queryable,
-  logger: Logger | undefined,
-  fn: (db: Queryable) => Promise<void>,
-): Promise<void> {
-  await execAndLog(db, logger, "BEGIN");
-  try {
-    await fn(db);
-    await execAndLog(db, logger, "COMMIT");
-  } catch (err) {
-    await db.query("ROLLBACK");
-    throw err;
+export class MigrationError extends Error {
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = "MigrationError";
+    this.cause = cause;
   }
 }
 
-async function execAndLog(
-  db: Queryable,
-  logger: Logger | undefined,
-  sql: string,
-): Promise<void> {
-  const truncated = sql.length > 200 ? sql.substring(0, 200) + "…" : sql;
-  logger?.debug({ sql: truncated }, "exec");
-  await db.query(sql);
+// ---------------------------------------------------------------------------
+// Output helpers
+// ---------------------------------------------------------------------------
+
+function fmtSeq(n: number): string {
+  return String(n).padStart(4, "0");
 }
+
+function fmtDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+const INDENT = "        ";
+
+function indentSql(sql: string): string {
+  const lines = sql.split("\n").map((line) => line.trimEnd());
+  if (lines.length === 1) return lines[0];
+  return lines
+    .map((line, i) => (i === 0 ? line : INDENT + line))
+    .join("\n");
+}
+
+function printPlan(
+  plan: MigrationPlan,
+  mode: string | null,
+): void {
+  const header = mode
+    ? `pgmagmig: migration plan (${mode})`
+    : "pgmagmig: migration plan";
+  console.error(header);
+  console.error("");
+
+  for (const m of plan.toRollback) {
+    console.error(`  rollback ${fmtSeq(m.sequence)} ${m.title}`);
+  }
+  for (const m of plan.toApply) {
+    console.error(`  apply    ${fmtSeq(m.sequence)} ${m.title}`);
+  }
+
+  console.error("");
+  const parts: string[] = [];
+  if (plan.toRollback.length > 0) {
+    const n = plan.toRollback.length;
+    parts.push(`${n} ${n === 1 ? "migration" : "migrations"} to roll back`);
+  }
+  if (plan.toApply.length > 0) {
+    const n = plan.toApply.length;
+    parts.push(`${n} ${n === 1 ? "migration" : "migrations"} to apply`);
+  }
+  console.error(parts.join(", "));
+}
+
+function formatPgError(
+  err: unknown,
+  sequence: number,
+  title: string,
+  stmtIndex: number,
+  stmtTotal: number,
+): string {
+  const pgErr = err as {
+    code?: string;
+    message?: string;
+    detail?: string;
+    hint?: string;
+    where?: string;
+  };
+
+  const lines: string[] = [];
+  lines.push(
+    `ERROR in ${fmtSeq(sequence)} "${title}", statement ${stmtIndex}/${stmtTotal}`,
+  );
+  if (pgErr.code) lines.push(`  Code:    ${pgErr.code}`);
+  if (pgErr.message) lines.push(`  Message: ${pgErr.message}`);
+  if (pgErr.detail) lines.push(`  Detail:  ${pgErr.detail}`);
+  if (pgErr.hint) lines.push(`  Hint:    ${pgErr.hint}`);
+  if (pgErr.where) lines.push(`  Where:   ${pgErr.where}`);
+
+  return lines.join("\n");
+}
+
+async function execWithProgress(
+  db: Queryable,
+  sql: string,
+  index: number,
+  total: number,
+): Promise<void> {
+  console.error(`  [${index}/${total}] ${indentSql(sql)}`);
+  const start = performance.now();
+  try {
+    await db.query(sql);
+  } catch (err) {
+    console.error(`${INDENT}FAILED`);
+    throw err;
+  }
+  console.error(`${INDENT}ok (${fmtDuration(performance.now() - start)})`);
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function escapeSqlString(s: string): string {
   return "'" + s.replace(/'/g, "''") + "'";

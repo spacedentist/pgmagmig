@@ -44,19 +44,74 @@ pgmagmig migrate \
 
 Each migration (up or down) runs in its own transaction. If a migration fails, the transaction is rolled back and the management table remains consistent.
 
-## The plan is always printed
+## Migration plan
 
-Before executing, `migrate` prints what it will do:
+Before executing, `migrate` prints a plan to stderr showing what it will do:
 
 ```
-Rollback required (1 migration)
-  rollback: 0003 — Add notifications
-Migrations to apply (2 migrations)
-  apply: 0003 — Add orders table
-  apply: 0004 — Add order items
+pgmagmig: migration plan
+
+  rollback 0003 Add notifications
+  apply    0003 Add orders table
+  apply    0004 Add order items
+
+1 migration to roll back, 2 migrations to apply
 ```
 
-This happens even with `--dry-run`, `--check`, and when rollback is blocked (no `--allow-rollback`).
+This happens even with `--dry-run`, `--check`, and when rollback is blocked (no `--allow-rollback`). When the database is already up to date, no plan is printed — just the summary.
+
+## Execution output
+
+During execution, every SQL statement is printed before it runs. This includes transaction control (`BEGIN`, `COMMIT`) and management table writes, giving full visibility into what happens on the database. After each statement, the execution time is shown:
+
+```
+-- 0003 Add orders table
+
+  [1/5] BEGIN
+        ok (1ms)
+  [2/5] CREATE TABLE public.orders (
+          id integer NOT NULL,
+          user_id integer NOT NULL
+        )
+        ok (4ms)
+  [3/5] ALTER TABLE public.orders ADD CONSTRAINT orders_pkey PRIMARY KEY (id)
+        ok (2ms)
+  [4/5] INSERT INTO public.schema_migrations (sequence, uuid, title, down) VALUES (...)
+        ok (1ms)
+  [5/5] COMMIT
+        ok (0ms)
+
+-- 0003 done (38ms)
+```
+
+The `[N/M]` counter shows which statement is running. Multi-line SQL is displayed in full, with continuation lines indented to align with the first. The `done` line shows the wall-clock time for the entire migration.
+
+When all migrations complete, a summary is printed to stdout:
+
+```
+pgmagmig: 2 applied
+```
+
+Or with rollbacks:
+
+```
+pgmagmig: 1 rolled back, 2 applied
+```
+
+## Error output
+
+If a statement fails, the error is shown with the PostgreSQL error code and message:
+
+```
+  [2/5] CREATE TABLE public.orders (id integer REFERENCES nonexistent(id))
+        FAILED
+
+ERROR in 0003 "Add orders table", statement 2/5
+  Code:    42P01
+  Message: relation "nonexistent" does not exist
+```
+
+Detail, hint, and context are included when the database provides them. No further migrations are executed after an error.
 
 ## Rollback safety
 

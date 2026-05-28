@@ -7,7 +7,7 @@ import { generateDdl } from "./generate.js";
 import { diffSchema, diffSchemaAnnotated, diffSchemaStatements } from "./diff.js";
 import { validateDiff } from "./validate.js";
 import { readMigrationDirectory, writeMigrationFile } from "./migration.js";
-import { migrate } from "./runner.js";
+import { migrate, MigrationError } from "./runner.js";
 import { runWithEphemeralDb } from "./serve.js";
 import { splitSql } from "./split-sql.js";
 import type { DatabaseSchema } from "./types.js";
@@ -430,23 +430,8 @@ program
         check: opts.check,
       });
 
-      if (opts.dryRun || opts.check) {
-        if (!result.pending) {
-          console.log("Database is up to date.");
-        }
-        if (opts.check && result.pending) {
-          process.exit(1);
-        }
-      } else {
-        if (result.rolledBack.length > 0) {
-          console.log(`Rolled back ${result.rolledBack.length} migration(s).`);
-        }
-        if (result.applied.length > 0) {
-          console.log(`Applied ${result.applied.length} migration(s).`);
-        }
-        if (result.rolledBack.length === 0 && result.applied.length === 0) {
-          console.log("Database is up to date.");
-        }
+      if (opts.check && result.pending) {
+        process.exit(1);
       }
     } finally {
       await client.end();
@@ -483,6 +468,9 @@ function parseAllowedHazards(value?: string): Set<string> {
 }
 
 function formatError(err: unknown): never {
+  if (err instanceof MigrationError) {
+    process.exit(1);
+  }
   if (err instanceof Error) {
     const pgErr = err as {
       severity?: string;
