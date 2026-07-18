@@ -9,6 +9,7 @@ pgmagmig provides the following commands:
 | [`diff`](./cli/diff.md) | Compare two schemas, output DDL |
 | [`bootstrap`](./cli/bootstrap.md) | Create initial migration file(s) |
 | [`draft-migration`](./cli/draft-migration.md) | Generate a YAML migration from a schema diff |
+| [`verify-down`](./cli/verify-down.md) | Check that down-migrations reverse their up-migrations |
 | [`migrate`](./cli/migrate.md) | Apply migrations to a PostgreSQL database |
 | [`run`](./cli/run.md) | Build PGlite, expose via socket, run a command |
 

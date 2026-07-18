@@ -78,6 +78,7 @@ Builds a PGlite database from your migrations, exposes it via Unix socket, and r
 | `diff` | Compare two schemas, output DDL |
 | `bootstrap` | Write `0001.yaml` with management table DDL |
 | `draft-migration` | Generate a YAML migration file from a schema diff |
+| `verify-down` | Check that down-migrations reverse their up-migrations |
 | `migrate` | Apply migrations to a PostgreSQL database |
 | `run` | Build PGlite, expose via socket, run a command |
 

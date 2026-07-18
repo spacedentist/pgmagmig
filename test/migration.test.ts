@@ -163,6 +163,17 @@ describe("readMigrationDirectory", () => {
     await expect(readMigrationDirectory(dir)).rejects.toThrow("invalid");
   });
 
+  it("reads invalid migrations when allowInvalid is set", async () => {
+    await writeYaml(
+      "0001.yaml",
+      `title: t\nuuid: 7f3b2a1e-8c4d-4e5f-9a6b-1c2d3e4f5a6b\ninvalid: true\nup: SELECT 1;\n`,
+    );
+
+    const result = await readMigrationDirectory(dir, { allowInvalid: true });
+    expect(result).toHaveLength(1);
+    expect(result[0].invalid).toBe(true);
+  });
+
   it("throws on missing directory", async () => {
     await expect(readMigrationDirectory("/nonexistent/path")).rejects.toThrow(
       "not found",

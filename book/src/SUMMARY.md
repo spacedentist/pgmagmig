@@ -18,6 +18,7 @@
   - [diff](./cli/diff.md)
   - [bootstrap](./cli/bootstrap.md)
   - [draft-migration](./cli/draft-migration.md)
+  - [verify-down](./cli/verify-down.md)
   - [migrate](./cli/migrate.md)
   - [run](./cli/run.md)
 - [Schema Sources](./schema-sources.md)

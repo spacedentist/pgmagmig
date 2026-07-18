@@ -13,6 +13,7 @@ import { reconcileMigration } from "./reconcile.js";
 import { validateDiff } from "./validate.js";
 import { readMigrationDirectory, writeMigrationFile } from "./migration.js";
 import { migrate, MigrationError } from "./runner.js";
+import { verifyDownMigrations, type DownCheck } from "./verify-down.js";
 import { runWithEphemeralDb } from "./serve.js";
 import { splitSql } from "./split-sql.js";
 import type { DatabaseSchema, Statement } from "./types.js";
@@ -468,6 +469,50 @@ program
     }
   });
 
+// --- verify-down ---
+
+program
+  .command("verify-down")
+  .description("Verify that down-migrations correctly reverse their up-migrations")
+  .requiredOption("--migrations-dir <path>", "migrations directory")
+  .option("--last <n>", "number of trailing migrations to check", "1")
+  .option("--all", "check every migration in the chain")
+  .action(async (opts) => {
+    const migrations = await readMigrationDirectory(opts.migrationsDir, {
+      allowInvalid: true,
+    });
+
+    if (migrations.length === 0) {
+      console.log("pgmagmig: no migrations to verify");
+      return;
+    }
+
+    // Warn about work-in-progress migrations rather than refusing them: verify
+    // is a review tool, and freshly drafted migrations carry invalid: true.
+    for (const m of migrations) {
+      if (m.invalid) {
+        console.error(`warning: ${m.filename} is marked invalid: true (checking anyway)`);
+      }
+    }
+
+    let count: number;
+    if (opts.all) {
+      count = migrations.length;
+    } else {
+      count = parseInt(opts.last, 10);
+      if (!Number.isFinite(count) || count < 1) {
+        throw new Error(`--last must be a positive integer, got '${opts.last}'`);
+      }
+    }
+
+    const result = await verifyDownMigrations(migrations, { count });
+    printDownReport(result.checks);
+
+    if (!result.ok) {
+      process.exit(1);
+    }
+  });
+
 // --- run ---
 
 const runCmd = program
@@ -495,6 +540,54 @@ runCmd.action(async (opts) => {
 function parseAllowedHazards(value?: string): Set<string> {
   if (!value) return new Set();
   return new Set(value.split(",").map((s) => s.trim()));
+}
+
+function printDownReport(checks: DownCheck[]): void {
+  const seq = (n: number) => String(n).padStart(4, "0");
+  let failures = 0;
+
+  for (const c of checks) {
+    switch (c.status) {
+      case "ok":
+        console.log(`  ok        ${seq(c.sequence)} ${c.title}`);
+        break;
+      case "no-down":
+        console.log(`  skip      ${seq(c.sequence)} ${c.title} (no down migration)`);
+        break;
+      case "noop-down":
+        console.log(`  skip      ${seq(c.sequence)} ${c.title} (down is a no-op)`);
+        break;
+      case "down-mismatch":
+        failures++;
+        console.error(`  MISMATCH  ${seq(c.sequence)} ${c.title}`);
+        console.error(`            down migration does not restore the pre-migration schema:`);
+        for (const e of c.errors ?? []) console.error(`              - ${e.message}`);
+        break;
+      case "up-mismatch":
+        failures++;
+        console.error(`  MISMATCH  ${seq(c.sequence)} ${c.title}`);
+        console.error(`            re-applying up after down does not reproduce the schema:`);
+        for (const e of c.errors ?? []) console.error(`              - ${e.message}`);
+        break;
+      case "down-error":
+        failures++;
+        console.error(`  ERROR     ${seq(c.sequence)} ${c.title}`);
+        console.error(`            down migration failed to execute: ${c.message}`);
+        break;
+      case "up-error":
+        failures++;
+        console.error(`  ERROR     ${seq(c.sequence)} ${c.title}`);
+        console.error(`            up migration failed to execute: ${c.message}`);
+        break;
+    }
+  }
+
+  console.log("");
+  if (failures === 0) {
+    console.log(`pgmagmig: all checks passed`);
+  } else {
+    console.error(`pgmagmig: ${failures} ${failures === 1 ? "migration" : "migrations"} failed verification`);
+  }
 }
 
 function formatError(err: unknown): never {

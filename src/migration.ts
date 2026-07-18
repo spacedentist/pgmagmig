@@ -55,6 +55,7 @@ export function parseMigrationYaml(
 
 export async function readMigrationDirectory(
   dir: string,
+  opts: { allowInvalid?: boolean } = {},
 ): Promise<MigrationFile[]> {
   let entries: string[];
   try {
@@ -89,12 +90,16 @@ export async function readMigrationDirectory(
     }
   }
 
-  // Check for invalid migrations
-  for (const m of migrations) {
-    if (m.invalid) {
-      throw new Error(
-        `Migration ${m.filename} is marked as invalid. Review and remove the 'invalid' flag before proceeding.`,
-      );
+  // Check for invalid migrations. Review tools (e.g. verify-down) pass
+  // allowInvalid to inspect work-in-progress migrations; every other command
+  // treats invalid: true as a hard stop.
+  if (!opts.allowInvalid) {
+    for (const m of migrations) {
+      if (m.invalid) {
+        throw new Error(
+          `Migration ${m.filename} is marked as invalid. Review and remove the 'invalid' flag before proceeding.`,
+        );
+      }
     }
   }
 
