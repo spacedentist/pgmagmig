@@ -20,6 +20,32 @@ export interface DatabaseSchema {
   functions: Record<string, FunctionDef[]>;
   triggers: Record<string, Trigger>;
   indexes: Record<string, Index>;
+  /**
+   * Cross-object dependency edges read from `pg_depend` (deptype 'n'). Each
+   * edge says "dependent must be created after the object providing
+   * `referenced`". Populated by extraction; empty for schemas built any other
+   * way (e.g. from JSON), in which case the differ falls back to bucket order.
+   */
+  dependencies: SchemaDependency[];
+}
+
+/** A single `pg_depend` edge, mapped back to the object we emit DDL for. */
+export interface SchemaDependency {
+  dependent: DependentRef;
+  /** Capability provided by the referenced object, e.g. `enum:public.mood`. */
+  referenced: string;
+}
+
+export interface DependentRef {
+  kind: "column" | "default" | "constraint" | "index" | "trigger" | "view" | "function";
+  /** Owning table key, for column/default/constraint/index. */
+  table: string | null;
+  /** Column/constraint name, for column/default/constraint. */
+  name: string | null;
+  /** Object key, for index/view/function/trigger (the map key each uses). */
+  key: string | null;
+  /** Function identity arguments, for function dependents. */
+  identity: string | null;
 }
 
 export interface Extension {
@@ -192,5 +218,6 @@ export function emptySchema(): DatabaseSchema {
     functions: {},
     triggers: {},
     indexes: {},
+    dependencies: [],
   };
 }

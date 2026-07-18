@@ -24,7 +24,8 @@ pgmagmig draft-migration \
 | `--to-database <url>` | Target schema from live database (read-only) |
 | `--to-migrations-dir <path>` | Target from another migrations directory |
 | `--no-invalid` | Don't add the `invalid: true` marker |
-| `--skip-validation` | Skip up/down roundtrip validation |
+| `--quick` | Use the faster static differ instead of the reconciliation loop |
+| `--skip-validation` | Skip up/down roundtrip validation (static differ only) |
 | `--allow-hazards <types>` | Comma-separated hazard types to allow (or `all`) |
 
 Exactly one `--to-*` option is required.
@@ -33,9 +34,10 @@ Exactly one `--to-*` option is required.
 
 1. Builds the "from" schema by applying all existing migrations in `--migrations-dir` to PGlite.
 2. Builds the "to" schema from the `--to-*` source.
-3. Diffs in both directions: `from → to` for the up SQL, `to → from` for the down SQL.
-4. Validates both directions by roundtripping through PGlite.
-5. Writes the next sequential YAML file (e.g., `0003.yaml`).
+3. Plans in both directions: `from → to` for the up SQL, `to → from` for the down SQL.
+4. Writes the next sequential YAML file (e.g., `0003.yaml`).
+
+By default the plan comes from the reconciliation loop, whose output is correct by construction (see [`diff`](./diff.md) for how it works). `--quick` selects the one-shot static differ instead and validates both directions by roundtripping through PGlite; `--skip-validation` disables that check.
 
 ## The invalid marker
 

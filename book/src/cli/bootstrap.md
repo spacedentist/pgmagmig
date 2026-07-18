@@ -23,6 +23,7 @@ pgmagmig bootstrap --migrations-dir ./migrations --from-sql schema.sql
 | `--from-json <file>` | Existing schema as JSON |
 | `--from-database <url>` | Existing schema from live database (read-only) |
 | `--from-migrations-dir <path>` | Existing schema from another migrations directory |
+| `--quick` | Use the faster static differ instead of the reconciliation loop when capturing an existing schema |
 
 ## Behaviour
 

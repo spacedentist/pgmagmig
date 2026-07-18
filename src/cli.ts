@@ -4,13 +4,18 @@ import pg from "pg";
 import { PGlite } from "@electric-sql/pglite";
 import { extractSchema, extractSchemaFromSql, extractSchemaFromDatabase } from "./extract.js";
 import { generateDdl } from "./generate.js";
-import { diffSchema, diffSchemaAnnotated, diffSchemaStatements } from "./diff.js";
+import {
+  diffSchemaStatements,
+  renderStatements,
+  renderStatementsAnnotated,
+} from "./diff.js";
+import { reconcileMigration } from "./reconcile.js";
 import { validateDiff } from "./validate.js";
 import { readMigrationDirectory, writeMigrationFile } from "./migration.js";
 import { migrate, MigrationError } from "./runner.js";
 import { runWithEphemeralDb } from "./serve.js";
 import { splitSql } from "./split-sql.js";
-import type { DatabaseSchema } from "./types.js";
+import type { DatabaseSchema, Statement } from "./types.js";
 import { emptySchema } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -119,6 +124,28 @@ function addToOptions(cmd: Command): Command {
     .option("--to-migrations-dir <path>", "migrations directory");
 }
 
+function addQuickOption(cmd: Command): Command {
+  return cmd.option(
+    "--quick",
+    "use the faster static differ instead of the reconciliation loop " +
+      "(simpler DDL generation that may mis-order complex inter-object dependencies)",
+  );
+}
+
+/**
+ * Plan the statements that transform `from` into `to`. By default this runs the
+ * reconciliation loop (design doc §6.8), which executes against a shadow PGlite
+ * and is robust to interdependent views/functions. `--quick` falls back to the
+ * one-shot static differ.
+ */
+async function planStatements(
+  from: DatabaseSchema,
+  to: DatabaseSchema,
+  quick: boolean,
+): Promise<Statement[]> {
+  return quick ? diffSchemaStatements(from, to) : await reconcileMigration(from, to);
+}
+
 function fromOpts(opts: Record<string, unknown>): SchemaSourceOpts {
   return {
     sql: opts.fromSql as string[] | undefined,
@@ -180,17 +207,18 @@ generateCmd.action(async (opts) => {
 const diffCmd = program
   .command("diff")
   .description("Compare two schemas and output DDL to transform one into the other")
-  .option("--skip-validation", "skip automatic diff validation")
+  .option("--skip-validation", "skip automatic diff validation (static differ only)")
   .option("--annotated", "include -- HAZARD comments in output")
   .option("--check-hazards", "exit non-zero if any hazards are produced")
   .option("--allow-hazards <types>", "comma-separated hazard types to allow (or 'all')");
 addFromOptions(diffCmd);
 addToOptions(diffCmd);
+addQuickOption(diffCmd);
 diffCmd.action(async (opts) => {
   const from = await resolveSchema(fromOpts(opts), "from");
   const to = await resolveSchema(toOpts(opts), "to");
 
-  const stmts = diffSchemaStatements(from, to);
+  const stmts = await planStatements(from, to, opts.quick);
 
   // Hazard gating
   if (opts.checkHazards) {
@@ -206,10 +234,11 @@ diffCmd.action(async (opts) => {
     }
   }
 
-  // Validation
-  if (!opts.skipValidation && stmts.length > 0) {
-    const ddl = stmts.map((s) => s.ddl).join(";\n") + ";\n";
-    const errors = await validateDiff(from, to, ddl);
+  // Validation. The loop applies its plan to a shadow database and converges on
+  // the target, so its output is verified by construction — only the static
+  // (`--quick`) path needs the separate roundtrip check.
+  if (opts.quick && !opts.skipValidation && stmts.length > 0) {
+    const errors = await validateDiff(from, to, renderStatements(stmts));
     if (errors.length > 0) {
       console.error("Diff validation failed:");
       for (const e of errors) {
@@ -220,11 +249,9 @@ diffCmd.action(async (opts) => {
   }
 
   // Output
-  if (opts.annotated) {
-    process.stdout.write(diffSchemaAnnotated(from, to));
-  } else {
-    process.stdout.write(diffSchema(from, to));
-  }
+  process.stdout.write(
+    opts.annotated ? renderStatementsAnnotated(stmts) : renderStatements(stmts),
+  );
 });
 
 // --- bootstrap ---
@@ -235,6 +262,7 @@ const bootstrapCmd = program
   .requiredOption("--migrations-dir <path>", "migrations directory")
   .option("--management-table <name>", "management table name", "public.schema_migrations");
 addFromOptions(bootstrapCmd);
+addQuickOption(bootstrapCmd);
 bootstrapCmd.action(async (opts) => {
     const tableName = opts.managementTable;
     const createTableSql = `CREATE TABLE ${tableName} (\n  sequence integer PRIMARY KEY,\n  uuid uuid NOT NULL,\n  title text NOT NULL,\n  down text\n);`;
@@ -279,9 +307,9 @@ bootstrapCmd.action(async (opts) => {
       const existingSchema = await resolveSchema(fOpts, "from");
       const { escapeLiteral: esc } = await import("./escape.js");
 
-      // Diff from empty to the existing schema
-      const upDdl = diffSchemaAnnotated(emptySchema(), existingSchema);
-      const downDdl = diffSchema(existingSchema, emptySchema());
+      // Diff from empty to the existing schema (captures it as 0002.yaml's up).
+      const upStmts = await planStatements(emptySchema(), existingSchema, opts.quick);
+      const upDdl = renderStatementsAnnotated(upStmts);
 
       const uuid2 = randomUUID();
       const title2 = "Existing database schema";
@@ -336,9 +364,10 @@ const draftCmd = program
   .requiredOption("--migrations-dir <path>", "migrations directory")
   .requiredOption("--title <title>", "migration title")
   .option("--no-invalid", "omit the invalid: true marker")
-  .option("--skip-validation", "skip up/down roundtrip validation")
+  .option("--skip-validation", "skip up/down roundtrip validation (static differ only)")
   .option("--allow-hazards <types>", "comma-separated hazard types to allow (or 'all')");
 addToOptions(draftCmd);
+addQuickOption(draftCmd);
 draftCmd.action(async (opts) => {
   // Build "from" schema by applying existing migrations
   const fromSchema = await resolveSchema(
@@ -347,8 +376,8 @@ draftCmd.action(async (opts) => {
   );
   const toSchema = await resolveSchema(toOpts(opts), "to");
 
-  const upStmts = diffSchemaStatements(fromSchema, toSchema);
-  const downStmts = diffSchemaStatements(toSchema, fromSchema);
+  const upStmts = await planStatements(fromSchema, toSchema, opts.quick);
+  const downStmts = await planStatements(toSchema, fromSchema, opts.quick);
 
   // Hazard gating
   const allowed = parseAllowedHazards(opts.allowHazards);
@@ -364,11 +393,12 @@ draftCmd.action(async (opts) => {
     process.exit(1);
   }
 
-  const upDdl = diffSchemaAnnotated(fromSchema, toSchema);
-  const downDdl = diffSchema(toSchema, fromSchema);
+  const upDdl = renderStatementsAnnotated(upStmts);
+  const downDdl = renderStatements(downStmts);
 
-  // Validation
-  if (!opts.skipValidation) {
+  // Validation. Loop output is verified by construction (see the `diff`
+  // command); only the static (`--quick`) path needs the roundtrip check.
+  if (opts.quick && !opts.skipValidation) {
     if (upDdl) {
       const upErrors = await validateDiff(fromSchema, toSchema, upDdl);
       if (upErrors.length > 0) {

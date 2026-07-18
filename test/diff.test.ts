@@ -69,6 +69,19 @@ describe("diffSchema", () => {
     expectTablesMatch(applied, to);
   });
 
+  it("drops a column that has an index and a constraint on it", async () => {
+    // No anticipatory ordering: the bucket order drops the constraint and index
+    // before the column, and PG cleans up the rest.
+    const { to, applied } = await applyDiff(
+      `CREATE TABLE t (id integer, email text, UNIQUE (email));
+       CREATE INDEX idx_email ON t (email)`,
+      `CREATE TABLE t (id integer)`,
+    );
+    expectTablesMatch(applied, to);
+    expect(applied.tables["public.t"].columns.find((c) => c.name === "email")).toBeUndefined();
+    expect(Object.keys(applied.indexes)).not.toContain("public.idx_email");
+  });
+
   it("drops a column with hazard", async () => {
     const from = await schemaFromSql(db, "CREATE TABLE t (id integer, name text)");
     const to = await schemaFromSql(db, "CREATE TABLE t (id integer)");
@@ -200,6 +213,90 @@ describe("diffSchema", () => {
       `CREATE FUNCTION f(a integer) RETURNS integer AS $$ SELECT a + 1 $$ LANGUAGE sql`,
     );
     expect(Object.keys(applied.functions)).toContain("public.f");
+  });
+
+  it("orders interdependent functions so callees precede callers", async () => {
+    const { to, applied } = await applyDiff(
+      "",
+      `CREATE FUNCTION foo(i integer) RETURNS integer AS $$
+         SELECT (i + 1) AS j
+       $$ LANGUAGE SQL;
+       CREATE FUNCTION bar(i integer) RETURNS integer AS $$
+         SELECT (foo(i) + 1) AS j
+       $$ LANGUAGE SQL;`,
+    );
+    expect(Object.keys(applied.functions)).toContain("public.foo");
+    expect(Object.keys(applied.functions)).toContain("public.bar");
+  });
+
+  it("orders a view built on another view (same bucket, needs pg_depend)", async () => {
+    // Adversarial names: alphabetically the dependent view sorts first, so only
+    // a pg_depend edge produces the correct order.
+    const { applied } = await applyDiff(
+      "",
+      `CREATE TABLE t (x integer);
+       CREATE VIEW zzz_v1 AS SELECT x FROM t;
+       CREATE VIEW aaa_v2 AS SELECT x FROM zzz_v1;`,
+    );
+    expect(applied.views["public.zzz_v1"]).toBeDefined();
+    expect(applied.views["public.aaa_v2"]).toBeDefined();
+  });
+
+  it("orders an enum-typed column before nothing breaks (adversarial names)", async () => {
+    const { applied } = await applyDiff(
+      "",
+      `CREATE TYPE zzz_mood AS ENUM ('sad','happy');
+       CREATE TABLE aaa_people (id integer, m zzz_mood);`,
+    );
+    expect(applied.tables["public.aaa_people"].columns.find((c) => c.name === "m")).toBeDefined();
+    expect(applied.enums["public.zzz_mood"]).toBeDefined();
+  });
+
+  it("orders a default calling a function, and a check calling a function", async () => {
+    const { applied } = await applyDiff(
+      "",
+      `CREATE FUNCTION zzz_def() RETURNS integer AS $$ SELECT 7 $$ LANGUAGE sql;
+       CREATE FUNCTION zzz_chk(i integer) RETURNS boolean AS $$ SELECT i > 0 $$ LANGUAGE sql;
+       CREATE TABLE aaa_t (
+         id integer,
+         v integer DEFAULT zzz_def(),
+         c integer CONSTRAINT c_pos CHECK (zzz_chk(c))
+       );`,
+    );
+    const t = applied.tables["public.aaa_t"];
+    expect(t.columns.find((c) => c.name === "v")).toBeDefined();
+    expect(t.constraints.find((c) => c.name === "c_pos")).toBeDefined();
+  });
+
+  it("orders a trigger's function and an expression index's function", async () => {
+    const { applied } = await applyDiff(
+      "",
+      `CREATE FUNCTION zzz_idx(t text) RETURNS text AS $$ SELECT lower(t) $$ LANGUAGE sql;
+       CREATE FUNCTION zzz_trg() RETURNS trigger AS $$ BEGIN RETURN NEW; END $$ LANGUAGE plpgsql;
+       CREATE TABLE aaa_t (id integer, txt text);
+       CREATE INDEX aaa_idx ON aaa_t (zzz_idx(txt));
+       CREATE TRIGGER aaa_trigger BEFORE INSERT ON aaa_t FOR EACH ROW EXECUTE FUNCTION zzz_trg();`,
+    );
+    expect(Object.keys(applied.indexes)).toContain("public.aaa_idx");
+    expect(Object.keys(applied.triggers).length).toBe(1);
+  });
+
+  it("handles mutually recursive functions", async () => {
+    // Neither function can be created before the other exists, so the input
+    // schema — like a real dump — must itself disable body validation, and the
+    // diff we emit must do the same for the migration to apply.
+    const { applied } = await applyDiff(
+      "",
+      `SET check_function_bodies = false;
+       CREATE FUNCTION is_even(n integer) RETURNS boolean AS $$
+         SELECT CASE WHEN n = 0 THEN true ELSE is_odd(n - 1) END
+       $$ LANGUAGE SQL;
+       CREATE FUNCTION is_odd(n integer) RETURNS boolean AS $$
+         SELECT CASE WHEN n = 0 THEN false ELSE is_even(n - 1) END
+       $$ LANGUAGE SQL;`,
+    );
+    expect(Object.keys(applied.functions)).toContain("public.is_even");
+    expect(Object.keys(applied.functions)).toContain("public.is_odd");
   });
 
   it("handles function overload changes", async () => {

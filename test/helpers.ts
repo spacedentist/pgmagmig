@@ -31,6 +31,9 @@ export async function applyDiffAndExtract(
 ): Promise<DatabaseSchema> {
   await db.query("BEGIN");
   try {
+    // The "from" SQL and the diff DDL are both applied as-is: the "from" state
+    // is trusted, self-contained user input, and the diff DDL is self-sufficient
+    // (it emits its own `SET check_function_bodies = false` when it needs one).
     if (fromSql) {
       for (const stmt of splitSql(fromSql)) {
         await db.query(stmt);

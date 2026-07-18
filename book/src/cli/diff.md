@@ -33,7 +33,8 @@ Exactly one `--from-*` and one `--to-*` option is required.
 
 | Option | Description |
 |--------|-------------|
-| `--skip-validation` | Skip automatic diff validation via PGlite |
+| `--quick` | Use the faster static differ instead of the reconciliation loop (see below) |
+| `--skip-validation` | Skip automatic diff validation via PGlite (static differ only) |
 | `--annotated` | Include `-- HAZARD (type): message` comments |
 | `--check-hazards` | Exit non-zero if any hazards are produced |
 | `--allow-hazards <types>` | Comma-separated hazard types to allow (or `all`) |
@@ -42,9 +43,11 @@ Exactly one `--from-*` and one `--to-*` option is required.
 
 DDL statements written to stdout. With `--annotated`, hazard comments appear above their statements.
 
-## Validation
+## How the DDL is planned
 
-By default, every diff is validated by applying it to a PGlite instance populated with the "from" schema and comparing the result to the "to" schema. Use `--skip-validation` to disable this (faster, but no correctness guarantee).
+By default, `diff` uses the **reconciliation loop**: it applies changes to an in-memory PGlite instance step by step, re-reading the schema after each step until it matches the target. Because it plans against a live database, it copes with awkward interdependencies — reordering interdependent views and functions, and dropping-and-recreating dependent objects when the thing they depend on changes. Its output is correct by construction, so no separate validation step is needed.
+
+`--quick` selects the one-shot **static differ** instead. It computes the whole plan in a single pass, which is faster and produces a minimal diff, but in some situations may mis-order complex inter-object dependencies. In practice it handles most schemas well (it uses the same fine-grained ordering buckets as the reconciliation loop). When `--quick` is used, the plan is validated by applying it to a fresh PGlite instance and comparing the result to the target; `--skip-validation` disables that check (faster, but no correctness guarantee).
 
 ## Hazard gating
 

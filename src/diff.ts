@@ -3,6 +3,7 @@ import type {
   Column,
   Constraint,
   DatabaseSchema,
+  DependentRef,
   Enum,
   FunctionDef,
   Hazard,
@@ -18,24 +19,35 @@ import type {
 // Public API
 // ---------------------------------------------------------------------------
 
+export interface RenderOptions {
+  /**
+   * Render drops of dataless objects (views, functions, triggers, indexes) with
+   * `IF EXISTS … CASCADE`. Used by the reconciliation loop (§6.8), where a
+   * cascade may pre-empt a later drop and the re-diff recreates any fallout.
+   * Off by default so the one-shot static differ is unchanged.
+   */
+  cascadeDatalessDrops?: boolean;
+}
+
 export function diffSchemaStatements(
   from: DatabaseSchema,
   to: DatabaseSchema,
+  opts: RenderOptions = {},
 ): Statement[] {
   const atoms = generateAtoms(from, to);
   const edges = resolveEdges(atoms, from);
   const sorted = topoSort(atoms, edges);
-  return combineAndRender(sorted);
+  return combineAndRender(sorted, opts);
 }
 
-export function diffSchema(from: DatabaseSchema, to: DatabaseSchema): string {
-  const stmts = diffSchemaStatements(from, to);
+/** Render statements (from either the static differ or the loop) as plain DDL. */
+export function renderStatements(stmts: Statement[]): string {
   if (stmts.length === 0) return "";
   return stmts.map((s) => s.ddl).join(";\n") + ";\n";
 }
 
-export function diffSchemaAnnotated(from: DatabaseSchema, to: DatabaseSchema): string {
-  const stmts = diffSchemaStatements(from, to);
+/** Render statements as DDL with `-- HAZARD (type): message` comments. */
+export function renderStatementsAnnotated(stmts: Statement[]): string {
   if (stmts.length === 0) return "";
   return stmts
     .map((s) => {
@@ -43,6 +55,14 @@ export function diffSchemaAnnotated(from: DatabaseSchema, to: DatabaseSchema): s
       return comments ? `${comments}\n${s.ddl}` : s.ddl;
     })
     .join(";\n") + ";\n";
+}
+
+export function diffSchema(from: DatabaseSchema, to: DatabaseSchema): string {
+  return renderStatements(diffSchemaStatements(from, to));
+}
+
+export function diffSchemaAnnotated(from: DatabaseSchema, to: DatabaseSchema): string {
+  return renderStatementsAnnotated(diffSchemaStatements(from, to));
 }
 
 // ---------------------------------------------------------------------------
@@ -123,7 +143,64 @@ function generateAtoms(from: DatabaseSchema, to: DatabaseSchema): Atom[] {
   diffViews(from, to, atoms, droppedSchemas);
   diffTriggers(from, to, atoms, droppedTables, droppedSchemas);
 
+  applyCatalogDependencies(atoms, to);
+
   return atoms;
+}
+
+/**
+ * Turn the `pg_depend`-derived edges carried on the target schema into `requires`
+ * on the atoms that create each dependent object. The bucket order already
+ * handles cross-category dependencies; these edges add the intra-category ones
+ * (view→view, function→function) and act as a backstop everywhere else. See
+ * design doc §6.2.
+ *
+ * For objects that the render-time combiner inlines into `CREATE TABLE`
+ * (columns, defaults, constraints, indexes of a *new* table), the requirement
+ * must land on the `create_table` atom so the whole statement waits for the
+ * referenced object — mirroring how foreign keys are handled.
+ */
+function applyCatalogDependencies(atoms: Atom[], to: DatabaseSchema): void {
+  if (!to.dependencies || to.dependencies.length === 0) return;
+  const byId = new Map(atoms.map((a) => [a.id, a]));
+  const newTables = new Set<string>();
+  for (const a of atoms) if (a.kind === "create_table") newTables.add(a.target);
+
+  for (const dep of to.dependencies) {
+    const id = dependentAtomId(dep.dependent, newTables);
+    if (!id) continue;
+    const target = byId.get(id);
+    if (!target) continue; // dependent object is not being (re)created — nothing to order
+    if (!target.requires.includes(dep.referenced)) {
+      target.requires.push(dep.referenced);
+    }
+  }
+}
+
+function dependentAtomId(d: DependentRef, newTables: Set<string>): string | null {
+  switch (d.kind) {
+    case "column":
+      if (!d.table) return null;
+      if (newTables.has(d.table)) return `create-table:${d.table}`;
+      return d.name ? `add-col:${d.table}.${d.name}` : null;
+    case "default":
+      if (!d.table) return null;
+      if (newTables.has(d.table)) return `create-table:${d.table}`;
+      return d.name ? `set-def:${d.table}.${d.name}` : null;
+    case "constraint":
+      if (!d.table) return null;
+      if (newTables.has(d.table)) return `create-table:${d.table}`;
+      return d.name ? `add-con:${d.table}.${d.name}` : null;
+    case "index":
+      if (d.table && newTables.has(d.table)) return `create-table:${d.table}`;
+      return d.key ? `create-idx:${d.key}` : null;
+    case "trigger":
+      return d.key ? `create-trigger:${d.key}` : null;
+    case "view":
+      return d.key ? `create-view:${d.key}` : null;
+    case "function":
+      return d.key ? `create-fn:${d.key}(${d.identity ?? ""})` : null;
+  }
 }
 
 function diffSchemas(from: DatabaseSchema, to: DatabaseSchema, atoms: Atom[]) {
@@ -346,6 +423,7 @@ function diffSequences(from: DatabaseSchema, to: DatabaseSchema, atoms: Atom[]) 
 }
 
 function diffFunctions(from: DatabaseSchema, to: DatabaseSchema, atoms: Atom[]) {
+  let createsFunction = false;
   for (const [key, toOverloads] of Object.entries(to.functions)) {
     const fromOverloads = from.functions[key] ?? [];
     const fromById = new Map(fromOverloads.map((f) => [f.identity, f]));
@@ -353,14 +431,35 @@ function diffFunctions(from: DatabaseSchema, to: DatabaseSchema, atoms: Atom[]) 
       const fromFn = fromById.get(fn.identity);
       if (!fromFn || fromFn.definition !== fn.definition) {
         const fnId = `${key}(${fn.identity})`;
+        createsFunction = true;
+        // No inter-function ordering is needed: we disable function-body
+        // validation for the migration (see the set_check_function_bodies
+        // atom below), exactly as pg_dump does. This makes creation order
+        // among functions irrelevant and lets mutually-recursive functions
+        // — which cannot otherwise be created — apply cleanly.
         atoms.push(atom({
           id: `create-fn:${fnId}`, kind: "create_function", priority: 1,
           target: key, hazards: [], provides: [`function:${fnId}`],
-          requires: fn.schema !== "public" ? [`schema:${fn.schema}`] : [],
+          requires: [
+            "session:check_function_bodies_off",
+            ...(fn.schema !== "public" ? [`schema:${fn.schema}`] : []),
+          ],
           functionDef: fn,
         }));
       }
     }
+  }
+
+  // PG17 validates SQL-language function bodies at creation time, so a function
+  // whose body references another (yet-to-be-created, or mutually-recursive)
+  // function would fail. Disabling body validation for the migration sidesteps
+  // ordering entirely; the emitted schema is already known-valid.
+  if (createsFunction) {
+    atoms.push(atom({
+      id: "set-check-function-bodies", kind: "set_check_function_bodies", priority: 1,
+      target: "", hazards: [], provides: ["session:check_function_bodies_off"],
+      requires: [],
+    }));
   }
   for (const [key, fromOverloads] of Object.entries(from.functions)) {
     const toOverloads = to.functions[key] ?? [];
@@ -666,28 +765,16 @@ function diffTableContents(
     }
   }
 
-  // Dropped columns
+  // Dropped columns. No anticipatory "drop the constraints/indexes on this
+  // column first" bookkeeping is needed: the bucket order (§6.3) already drops
+  // constraints and indexes before columns, and PostgreSQL auto-drops whatever
+  // remains along with the column.
   for (const [name] of fromCols) {
     if (!toCols.has(name)) {
-      const reqs: string[] = [];
-      // Require constraints using this column to be dropped first
-      for (const con of fromTable.constraints) {
-        if (con.columns.includes(name)) {
-          reqs.push(`dropped:constraint:${key}.${con.name}`);
-        }
-      }
-      // Require indexes on this table to be dropped first (PG auto-drops
-      // them with the column, which would cause our explicit DROP INDEX to
-      // fail if it runs after)
-      for (const [iKey, idx] of Object.entries(fromSchema.indexes)) {
-        if (idx.tableName === key) {
-          reqs.push(`dropped:index:${iKey}`);
-        }
-      }
       atoms.push(atom({
         id: `drop-col:${key}.${name}`, kind: "drop_column", priority: 0,
         target: key, hazards: [hz("DeletesData", `deletes all data in column ${qt}.${name}`)],
-        provides: [`dropped:column:${key}.${name}`], requires: reqs,
+        provides: [`dropped:column:${key}.${name}`], requires: [],
         table: qt, columnName: name,
       }));
     }
@@ -844,11 +931,50 @@ function resolveEdges(
 }
 
 // ---------------------------------------------------------------------------
-// Topological sort with priority tie-breaking
+// Bucket ordering
+// ---------------------------------------------------------------------------
+
+// Category rank for each atom kind, in dependency-safe creation order (adapted
+// from migra's phase script). This is the sort priority that orders everything
+// the dependency graph leaves free: forward for creates, reversed for drops
+// (so triggers drop first, types last). See design doc §6.3.
+const BUCKET_RANK: Record<string, number> = {
+  create_schema: 10, drop_schema: 10,
+  create_extension: 20, alter_extension: 20, drop_extension: 20,
+  create_enum: 30, alter_enum_values: 30, drop_enum: 30,
+  create_sequence: 40, alter_sequence: 40, drop_sequence: 40,
+  set_check_function_bodies: 50, create_function: 50, drop_function: 50,
+  create_table: 60, drop_table: 60, add_column: 60, drop_column: 60,
+  set_not_null: 60, drop_not_null: 60, alter_column_type: 60,
+  alter_identity: 60, set_generated: 60, own_sequence: 60,
+  set_default: 70, drop_default: 70,
+  create_index: 80, drop_index: 80,
+  add_constraint: 90, drop_constraint: 90,
+  create_view: 100, drop_view: 100,
+  create_trigger: 110, drop_trigger: 110,
+};
+
+function bucketRank(atom: Atom): number {
+  return BUCKET_RANK[atom.kind] ?? 60;
+}
+
+// Orders the "ready" set during the topological sort. The graph edges are the
+// hard constraint; this only decides between atoms that are all free to run.
+function compareAtoms(a: Atom, b: Atom): number {
+  if (a.priority !== b.priority) return a.priority - b.priority; // drops before creates
+  // Bucket order: forward for creates, reversed for drops.
+  const ra = a.priority === 0 ? -bucketRank(a) : bucketRank(a);
+  const rb = b.priority === 0 ? -bucketRank(b) : bucketRank(b);
+  if (ra !== rb) return ra - rb;
+  if (a.target !== b.target) return a.target.localeCompare(b.target);
+  return a.order - b.order;
+}
+
+// ---------------------------------------------------------------------------
+// Topological sort with bucket priority, tolerant of cycles
 // ---------------------------------------------------------------------------
 
 function topoSort(atoms: Atom[], edges: Map<string, Set<string>>): Atom[] {
-  const atomMap = new Map(atoms.map((a) => [a.id, a]));
   const inDegree = new Map<string, number>();
   const reverseEdges = new Map<string, Set<string>>();
 
@@ -863,31 +989,29 @@ function topoSort(atoms: Atom[], edges: Map<string, Set<string>>): Atom[] {
     }
   }
 
-  // Seed with zero in-degree atoms
-  const ready: Atom[] = [];
-  for (const atom of atoms) {
-    if (inDegree.get(atom.id) === 0) ready.push(atom);
-  }
-
   const result: Atom[] = [];
-  while (ready.length > 0) {
-    // Sort ready set: priority first (lower = earlier), then target name for grouping
-    ready.sort((a, b) => {
-      if (a.priority !== b.priority) return a.priority - b.priority;
-      if (a.target !== b.target) return a.target.localeCompare(b.target);
-      return a.order - b.order;
-    });
+  const emitted = new Set<string>();
 
-    const atom = ready.shift()!;
+  const emit = (atom: Atom) => {
     result.push(atom);
-
+    emitted.add(atom.id);
     for (const dependent of reverseEdges.get(atom.id) ?? []) {
-      const newDeg = inDegree.get(dependent)! - 1;
-      inDegree.set(dependent, newDeg);
-      if (newDeg === 0) {
-        ready.push(atomMap.get(dependent)!);
-      }
+      inDegree.set(dependent, inDegree.get(dependent)! - 1);
     }
+  };
+
+  while (result.length < atoms.length) {
+    // Atoms with no remaining unmet dependency.
+    let ready = atoms.filter((a) => !emitted.has(a.id) && inDegree.get(a.id)! <= 0);
+    if (ready.length === 0) {
+      // Everything left is trapped in a cycle. Break it deterministically:
+      // emit the highest-priority remaining atom despite its unmet edges. Any
+      // edge into it is thereby dropped — harmless, because the only cycles we
+      // can produce are among functions, whose order does not matter (§6.4/6.5).
+      ready = atoms.filter((a) => !emitted.has(a.id));
+    }
+    ready.sort(compareAtoms);
+    emit(ready[0]);
   }
 
   return result;
@@ -897,7 +1021,7 @@ function topoSort(atoms: Atom[], edges: Map<string, Set<string>>): Atom[] {
 // Combine and render
 // ---------------------------------------------------------------------------
 
-function combineAndRender(sorted: Atom[]): Statement[] {
+function combineAndRender(sorted: Atom[], opts: RenderOptions = {}): Statement[] {
   const claimed = new Set<string>();
   const result: Statement[] = [];
 
@@ -928,7 +1052,7 @@ function combineAndRender(sorted: Atom[]): Statement[] {
     } else if (atom.kind === "alter_enum_values") {
       result.push(...renderEnumModification(atom));
     } else {
-      result.push(...renderAtom(atom));
+      result.push(...renderAtom(atom, opts));
     }
     claimed.add(atom.id);
   }
@@ -1103,7 +1227,12 @@ function renderEnumModification(atom: Atom): Statement[] {
   return stmts;
 }
 
-function renderAtom(atom: Atom): Statement[] {
+function renderAtom(atom: Atom, opts: RenderOptions = {}): Statement[] {
+  // In reconcile mode, dataless drops use IF EXISTS + CASCADE: a cascade may
+  // pre-empt a later drop (hence IF EXISTS) and clears dependents, which the
+  // loop's re-diff then recreates. Never applied to data-bearing objects.
+  const ifExists = opts.cascadeDatalessDrops ? "IF EXISTS " : "";
+  const cascade = opts.cascadeDatalessDrops ? " CASCADE" : "";
   switch (atom.kind) {
     case "create_schema":
       return [{ ddl: `CREATE SCHEMA ${atom.schemaName}`, hazards: atom.hazards }];
@@ -1146,10 +1275,12 @@ function renderAtom(atom: Atom): Statement[] {
       if (parts.length === 0) return [];
       return [{ ddl: `ALTER SEQUENCE ${atom.seqName} ${parts.join(" ")}`, hazards: atom.hazards }];
     }
+    case "set_check_function_bodies":
+      return [{ ddl: `SET check_function_bodies = false`, hazards: atom.hazards }];
     case "create_function":
       return [{ ddl: atom.functionDef!.definition, hazards: atom.hazards }];
     case "drop_function":
-      return [{ ddl: `DROP FUNCTION ${atom.table}${atom.fnIdentity}`, hazards: atom.hazards }];
+      return [{ ddl: `DROP FUNCTION ${ifExists}${atom.table}${atom.fnIdentity}${cascade}`, hazards: atom.hazards }];
     case "create_table":
       // Standalone (no combining happened) — shouldn't normally reach here
       return [{ ddl: `CREATE TABLE ${atom.table} ()`, hazards: atom.hazards }];
@@ -1194,15 +1325,15 @@ function renderAtom(atom: Atom): Statement[] {
     case "create_index":
       return [{ ddl: atom.index!.definition, hazards: atom.hazards }];
     case "drop_index":
-      return [{ ddl: `DROP INDEX ${atom.index!.schema}.${atom.index!.name}`, hazards: atom.hazards }];
+      return [{ ddl: `DROP INDEX ${ifExists}${atom.index!.schema}.${atom.index!.name}${cascade}`, hazards: atom.hazards }];
     case "create_view":
       return [{ ddl: `CREATE VIEW ${atom.view!.schema}.${atom.view!.name} AS ${atom.view!.definition}`, hazards: atom.hazards }];
     case "drop_view":
-      return [{ ddl: `DROP VIEW ${atom.view!.schema}.${atom.view!.name}`, hazards: atom.hazards }];
+      return [{ ddl: `DROP VIEW ${ifExists}${atom.view!.schema}.${atom.view!.name}${cascade}`, hazards: atom.hazards }];
     case "create_trigger":
       return [{ ddl: atom.trigger!.definition, hazards: atom.hazards }];
     case "drop_trigger":
-      return [{ ddl: `DROP TRIGGER ${atom.trigger!.name} ON ${atom.trigger!.tableName}`, hazards: atom.hazards }];
+      return [{ ddl: `DROP TRIGGER ${ifExists}${atom.trigger!.name} ON ${atom.trigger!.tableName}`, hazards: atom.hazards }];
     case "own_sequence":
       return [{ ddl: `ALTER SEQUENCE ${atom.seqName} OWNED BY ${atom.table}.${atom.columnName}`, hazards: atom.hazards }];
     default:

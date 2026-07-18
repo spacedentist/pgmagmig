@@ -6,6 +6,7 @@ import type {
   Constraint,
   ConstraintType,
   DatabaseSchema,
+  DependentRef,
   Enum,
   Extension,
   FunctionDef,
@@ -13,6 +14,7 @@ import type {
   Index,
   Queryable,
   Schema,
+  SchemaDependency,
   Sequence,
   SequenceOptions,
   Table,
@@ -613,11 +615,134 @@ async function extractTriggers(
 }
 
 // ---------------------------------------------------------------------------
+// Cross-object dependencies (pg_depend)
+// ---------------------------------------------------------------------------
+
+/**
+ * Read every normal (`deptype = 'n'`) dependency among user objects and map
+ * each dependent catalog row back to the object we emit DDL for, plus the
+ * capability the referenced object provides. The differ turns these into
+ * ordering edges. See design doc §6.2.
+ */
+async function extractDependencies(db: Queryable): Promise<SchemaDependency[]> {
+  const notSystem = `n.nspname NOT IN ('pg_catalog','information_schema','pg_toast')`;
+  const { rows } = await db.query<{
+    dep_kind: DependentRef["kind"] | null;
+    dep_table: string | null;
+    dep_name: string | null;
+    dep_key: string | null;
+    dep_identity: string | null;
+    ref_cap: string | null;
+  }>(`
+    SELECT DISTINCT
+      -- dependent kind
+      CASE
+        WHEN d.classid = 'pg_attrdef'::regclass THEN 'default'
+        WHEN d.classid = 'pg_constraint'::regclass THEN 'constraint'
+        WHEN d.classid = 'pg_trigger'::regclass THEN 'trigger'
+        WHEN d.classid = 'pg_rewrite'::regclass THEN 'view'
+        WHEN d.classid = 'pg_proc'::regclass THEN 'function'
+        WHEN d.classid = 'pg_class'::regclass THEN (
+          SELECT CASE
+            WHEN d.objsubid > 0 AND c.relkind IN ('r','p') THEN 'column'
+            WHEN c.relkind IN ('i','I') THEN 'index'
+            WHEN c.relkind IN ('v','m') THEN 'view'
+            ELSE NULL END
+          FROM pg_class c WHERE c.oid = d.objid)
+        ELSE NULL END AS dep_kind,
+      -- owning table key (column/default/constraint/index)
+      CASE
+        WHEN d.classid = 'pg_attrdef'::regclass THEN
+          (SELECT quote_ident(n.nspname)||'.'||quote_ident(c.relname)
+           FROM pg_attrdef ad JOIN pg_class c ON c.oid=ad.adrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE ad.oid=d.objid)
+        WHEN d.classid = 'pg_constraint'::regclass THEN
+          (SELECT quote_ident(n.nspname)||'.'||quote_ident(c.relname)
+           FROM pg_constraint con JOIN pg_class c ON c.oid=con.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE con.oid=d.objid)
+        WHEN d.classid = 'pg_class'::regclass THEN (
+          SELECT CASE
+            WHEN d.objsubid > 0 THEN quote_ident(n.nspname)||'.'||quote_ident(c.relname)
+            WHEN c.relkind IN ('i','I') THEN
+              (SELECT quote_ident(n2.nspname)||'.'||quote_ident(tc.relname)
+               FROM pg_index ix JOIN pg_class tc ON tc.oid=ix.indrelid JOIN pg_namespace n2 ON n2.oid=tc.relnamespace WHERE ix.indexrelid=c.oid)
+            ELSE NULL END
+          FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.oid=d.objid)
+        ELSE NULL END AS dep_table,
+      -- column / constraint name
+      CASE
+        WHEN d.classid = 'pg_attrdef'::regclass THEN
+          (SELECT quote_ident(a.attname) FROM pg_attrdef ad JOIN pg_attribute a ON a.attrelid=ad.adrelid AND a.attnum=ad.adnum WHERE ad.oid=d.objid)
+        WHEN d.classid = 'pg_constraint'::regclass THEN
+          (SELECT quote_ident(con.conname) FROM pg_constraint con WHERE con.oid=d.objid)
+        WHEN d.classid = 'pg_class'::regclass AND d.objsubid > 0 THEN
+          (SELECT quote_ident(a.attname) FROM pg_attribute a WHERE a.attrelid=d.objid AND a.attnum=d.objsubid)
+        ELSE NULL END AS dep_name,
+      -- object key (index/view/function/trigger)
+      CASE
+        WHEN d.classid = 'pg_trigger'::regclass THEN
+          (SELECT quote_ident(n.nspname)||'.'||quote_ident(tg.tgname)||'@'||quote_ident(n.nspname)||'.'||quote_ident(c.relname)
+           FROM pg_trigger tg JOIN pg_class c ON c.oid=tg.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE tg.oid=d.objid)
+        WHEN d.classid = 'pg_rewrite'::regclass THEN
+          (SELECT quote_ident(n.nspname)||'.'||quote_ident(c.relname)
+           FROM pg_rewrite rw JOIN pg_class c ON c.oid=rw.ev_class JOIN pg_namespace n ON n.oid=c.relnamespace WHERE rw.oid=d.objid)
+        WHEN d.classid = 'pg_proc'::regclass THEN
+          (SELECT quote_ident(n.nspname)||'.'||quote_ident(p.proname) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.oid=d.objid)
+        WHEN d.classid = 'pg_class'::regclass THEN
+          (SELECT CASE WHEN c.relkind IN ('i','I','v','m') AND COALESCE(d.objsubid,0)=0 THEN quote_ident(n.nspname)||'.'||quote_ident(c.relname) ELSE NULL END
+           FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.oid=d.objid)
+        ELSE NULL END AS dep_key,
+      -- function identity (function dependents)
+      CASE WHEN d.classid = 'pg_proc'::regclass THEN pg_get_function_identity_arguments(d.objid) ELSE NULL END AS dep_identity,
+      -- referenced capability
+      CASE d.refclassid
+        WHEN 'pg_class'::regclass THEN
+          (SELECT CASE c.relkind
+             WHEN 'r' THEN 'table:' WHEN 'p' THEN 'table:'
+             WHEN 'v' THEN 'view:'  WHEN 'm' THEN 'view:'
+             WHEN 'S' THEN 'sequence:'
+             WHEN 'i' THEN 'index:' WHEN 'I' THEN 'index:'
+             ELSE NULL END || quote_ident(n.nspname)||'.'||quote_ident(c.relname)
+           FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.oid=d.refobjid AND ${notSystem})
+        WHEN 'pg_proc'::regclass THEN
+          (SELECT 'function:'||quote_ident(n.nspname)||'.'||quote_ident(p.proname)||'('||pg_get_function_identity_arguments(p.oid)||')'
+           FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.oid=d.refobjid AND ${notSystem})
+        WHEN 'pg_type'::regclass THEN
+          (SELECT CASE t.typtype
+             WHEN 'e' THEN 'enum:'||quote_ident(n.nspname)||'.'||quote_ident(t.typname)
+             WHEN 'c' THEN 'table:'||quote_ident(n2.nspname)||'.'||quote_ident(c.relname)
+             ELSE NULL END
+           FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace
+           LEFT JOIN pg_class c ON c.oid=t.typrelid LEFT JOIN pg_namespace n2 ON n2.oid=c.relnamespace
+           WHERE t.oid=d.refobjid AND ${notSystem})
+        ELSE NULL END AS ref_cap
+    FROM pg_depend d
+    WHERE d.deptype = 'n'
+      AND d.classid IN ('pg_class'::regclass,'pg_attrdef'::regclass,'pg_constraint'::regclass,'pg_trigger'::regclass,'pg_proc'::regclass,'pg_rewrite'::regclass)
+      AND d.refclassid IN ('pg_class'::regclass,'pg_proc'::regclass,'pg_type'::regclass)
+  `);
+
+  const deps: SchemaDependency[] = [];
+  for (const row of rows) {
+    if (!row.dep_kind || !row.ref_cap) continue;
+    deps.push({
+      dependent: {
+        kind: row.dep_kind,
+        table: row.dep_table,
+        name: row.dep_name,
+        key: row.dep_key,
+        identity: row.dep_identity,
+      },
+      referenced: row.ref_cap,
+    });
+  }
+  return deps;
+}
+
+// ---------------------------------------------------------------------------
 // Main extraction
 // ---------------------------------------------------------------------------
 
 export async function extractSchema(db: Queryable): Promise<DatabaseSchema> {
-  const [schemas, extensions, enums, sequences, cols, cons, indexes, views, functions, triggers] =
+  const [schemas, extensions, enums, sequences, cols, cons, indexes, views, functions, triggers, dependencies] =
     await Promise.all([
       extractSchemas(db),
       extractExtensions(db),
@@ -629,6 +754,7 @@ export async function extractSchema(db: Queryable): Promise<DatabaseSchema> {
       extractViews(db),
       extractFunctions(db),
       extractTriggers(db),
+      extractDependencies(db),
     ]);
 
   const tables = await extractTables(db, cols, cons);
@@ -643,6 +769,7 @@ export async function extractSchema(db: Queryable): Promise<DatabaseSchema> {
     functions,
     triggers,
     indexes,
+    dependencies,
   };
 }
 
