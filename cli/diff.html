@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-0392ca55.css">
-        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-43ae803c.js";
+            window.path_to_searchindex_js = "../searchindex-4689c9c6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5a2516f7.js"></script>
+        <script src="../toc-bb3fe6a9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -216,7 +216,8 @@ pgmagmig diff --from-empty --to-sql schema.sql
 <tr><th>Option</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>--skip-validation</code></td><td>Skip automatic diff validation via PGlite</td></tr>
+<tr><td><code>--quick</code></td><td>Use the faster static differ instead of the reconciliation loop (see below)</td></tr>
+<tr><td><code>--skip-validation</code></td><td>Skip automatic diff validation via PGlite (static differ only)</td></tr>
 <tr><td><code>--annotated</code></td><td>Include <code>-- HAZARD (type): message</code> comments</td></tr>
 <tr><td><code>--check-hazards</code></td><td>Exit non-zero if any hazards are produced</td></tr>
 <tr><td><code>--allow-hazards &lt;types&gt;</code></td><td>Comma-separated hazard types to allow (or <code>all</code>)</td></tr>
@@ -225,8 +226,9 @@ pgmagmig diff --from-empty --to-sql schema.sql
 </div>
 <h2 id="output"><a class="header" href="#output">Output</a></h2>
 <p>DDL statements written to stdout. With <code>--annotated</code>, hazard comments appear above their statements.</p>
-<h2 id="validation"><a class="header" href="#validation">Validation</a></h2>
-<p>By default, every diff is validated by applying it to a PGlite instance populated with the “from” schema and comparing the result to the “to” schema. Use <code>--skip-validation</code> to disable this (faster, but no correctness guarantee).</p>
+<h2 id="how-the-ddl-is-planned"><a class="header" href="#how-the-ddl-is-planned">How the DDL is planned</a></h2>
+<p>By default, <code>diff</code> uses the <strong>reconciliation loop</strong>: it applies changes to an in-memory PGlite instance step by step, re-reading the schema after each step until it matches the target. Because it plans against a live database, it copes with awkward interdependencies — reordering interdependent views and functions, and dropping-and-recreating dependent objects when the thing they depend on changes. Its output is correct by construction, so no separate validation step is needed.</p>
+<p><code>--quick</code> selects the one-shot <strong>static differ</strong> instead. It computes the whole plan in a single pass, which is faster and produces a minimal diff, but in some situations may mis-order complex inter-object dependencies. In practice it handles most schemas well (it uses the same fine-grained ordering buckets as the reconciliation loop). When <code>--quick</code> is used, the plan is validated by applying it to a fresh PGlite instance and comparing the result to the target; <code>--skip-validation</code> disables that check (faster, but no correctness guarantee).</p>
 <h2 id="hazard-gating"><a class="header" href="#hazard-gating">Hazard gating</a></h2>
 <p>When <code>--check-hazards</code> is set, <code>diff</code> exits with status 1 if any statement carries a hazard type not listed in <code>--allow-hazards</code>. This is useful in CI as a tripwire against unexpectedly destructive drift.</p>
 <pre><code class="language-bash"># Fail if the diff contains any hazard except IndexBuild
@@ -285,11 +287,11 @@ pgmagmig diff \
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-c22b7243.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>
-        <script src="../mermaid-init-ccf746f1.js"></script>
+        <script src="../mermaid-init-53b67c53.js"></script>
 
 
 
