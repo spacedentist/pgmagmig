@@ -24,8 +24,8 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.4.5",
-    "@electric-sql/pglite-socket": "^0.1.5",
+    "@electric-sql/pglite": "^0.4.6",
+    "@electric-sql/pglite-socket": "^0.1.6",
     "commander": "^13.1.0",
     "pg": "^8.13.3",
     "yaml": "^2.7.1"
