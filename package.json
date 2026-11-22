@@ -1,6 +1,6 @@
 {
   "name": "pgmagmig",
-  "version": "0.1.4",
+  "version": "0.1.5-dev.0",
   "description": "PostgreSQL migration tool with integrated schema differ, powered by PGlite",
   "type": "module",
   "bin": {
