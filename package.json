@@ -6,6 +6,9 @@
   "bin": {
     "pgmagmig": "dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
