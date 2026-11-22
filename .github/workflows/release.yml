@@ -49,7 +49,9 @@ jobs:
         with:
           name: package
           path: pkg
-      - run: npm publish --ignore-scripts pkg/*.tgz
+      # The ./ matters: without it npm reads pkg/<name>.tgz as GitHub
+      # "user/repo" shorthand and tries to clone it.
+      - run: npm publish --ignore-scripts ./pkg/*.tgz
 
   github-release:
     needs: publish
