@@ -4,26 +4,59 @@ on:
   push:
     tags: ["v*"]
 
-permissions:
-  contents: write
+# Nothing by default; each job asks for exactly what it needs.
+permissions: {}
 
 jobs:
-  release:
+  # Installs dependencies and runs third-party code (build tools, tests), so it
+  # gets no publishing rights. Its only output is the package tarball.
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
-          registry-url: https://registry.npmjs.org
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: mkdir pkg && npm pack --pack-destination pkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: pkg/*.tgz
+          if-no-files-found: error
+
+  # Holds the OIDC token for npm trusted publishing. Runs no project or
+  # dependency code: it only publishes the tarball built above.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm >= 11.5.1
+      - run: npm install -g npm@^11.5.1
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: pkg
+      - run: npm publish --ignore-scripts pkg/*.tgz
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
