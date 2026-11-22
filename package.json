@@ -27,12 +27,12 @@
     "@electric-sql/pglite": "^0.4.6",
     "@electric-sql/pglite-socket": "^0.1.6",
     "commander": "^13.1.0",
-    "pg": "^8.13.3",
+    "pg": "^8.23.1",
     "yaml": "^2.7.1"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
-    "@types/pg": "^8.11.14",
+    "@types/pg": "^8.23.1",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
     "vitest": "^5.1.1"
