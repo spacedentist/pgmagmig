@@ -381,3 +381,87 @@ describe("diffSchema", () => {
     expect(alter!.hazards.some((h) => h.type === "AcquiresAccessExclusiveLock")).toBe(true);
   });
 });
+
+// Dropping tables linked by foreign keys must drop the referencing table
+// before the referenced one, regardless of how their names sort.
+describe("diffSchema — dropping tables linked by foreign keys", () => {
+  async function dropAll(sql: string): Promise<{ ddl: string; applied: DatabaseSchema }> {
+    const from = await schemaFromSql(db, sql);
+    const to = await schemaFromSql(db, "");
+    const ddl = diffSchema(from, to);
+    const applied = await applyDiffAndExtract(db, sql, ddl);
+    return { ddl, applied };
+  }
+
+  const pairs: [referenced: string, referencing: string][] = [
+    ["a", "b"],
+    ["b", "a"],
+  ];
+  for (const [referenced, referencing] of pairs) {
+    it(`drops ${referencing} (referencing) before ${referenced} (referenced)`, async () => {
+      const { ddl, applied } = await dropAll(
+        `CREATE TABLE ${referenced} (id bigint PRIMARY KEY);
+         CREATE TABLE ${referencing} (id bigint PRIMARY KEY, ref_id bigint REFERENCES ${referenced} (id));`,
+      );
+      expect(Object.keys(applied.tables)).toEqual([]);
+      expect(ddl.indexOf(`DROP TABLE public.${referencing}`))
+        .toBeLessThan(ddl.indexOf(`DROP TABLE public.${referenced}`));
+    });
+  }
+
+  it("drops a chain of referencing tables in reverse dependency order", async () => {
+    const { ddl, applied } = await dropAll(
+      `CREATE TABLE a (id bigint PRIMARY KEY);
+       CREATE TABLE b (id bigint PRIMARY KEY, a_id bigint REFERENCES a);
+       CREATE TABLE c (id bigint PRIMARY KEY, b_id bigint REFERENCES b);`,
+    );
+    expect(Object.keys(applied.tables)).toEqual([]);
+    expect(ddl.indexOf("DROP TABLE public.c")).toBeLessThan(ddl.indexOf("DROP TABLE public.b"));
+    expect(ddl.indexOf("DROP TABLE public.b")).toBeLessThan(ddl.indexOf("DROP TABLE public.a"));
+  });
+
+  it("drops tables with a self-referencing foreign key", async () => {
+    const { applied } = await dropAll(
+      `CREATE TABLE a (id bigint PRIMARY KEY, parent_id bigint REFERENCES a);
+       CREATE TABLE b (id bigint PRIMARY KEY, a_id bigint REFERENCES a);`,
+    );
+    expect(Object.keys(applied.tables)).toEqual([]);
+  });
+
+  it("drops tables with circular foreign keys", async () => {
+    const { applied } = await dropAll(
+      `CREATE TABLE a (id bigint PRIMARY KEY, b_id bigint);
+       CREATE TABLE b (id bigint PRIMARY KEY, a_id bigint REFERENCES a);
+       ALTER TABLE a ADD CONSTRAINT a_b_fk FOREIGN KEY (b_id) REFERENCES b;`,
+    );
+    expect(Object.keys(applied.tables)).toEqual([]);
+  });
+
+  it("drops a three-table foreign key cycle", async () => {
+    const { applied } = await dropAll(
+      `CREATE TABLE a (id bigint PRIMARY KEY, c_id bigint);
+       CREATE TABLE b (id bigint PRIMARY KEY, a_id bigint REFERENCES a);
+       CREATE TABLE c (id bigint PRIMARY KEY, b_id bigint REFERENCES b);
+       ALTER TABLE a ADD CONSTRAINT a_c_fk FOREIGN KEY (c_id) REFERENCES c;`,
+    );
+    expect(Object.keys(applied.tables)).toEqual([]);
+  });
+
+  it("drops a referenced table while the referencing table only loses its FK", async () => {
+    const fromSql = `CREATE TABLE a (id bigint PRIMARY KEY);
+       CREATE TABLE b (id bigint PRIMARY KEY, a_id bigint REFERENCES a);`;
+    const from = await schemaFromSql(db, fromSql);
+    const to = await schemaFromSql(db, "CREATE TABLE b (id bigint PRIMARY KEY, a_id bigint);");
+    const applied = await applyDiffAndExtract(db, fromSql, diffSchema(from, to));
+    expect(Object.keys(applied.tables)).toEqual(["public.b"]);
+  });
+
+  it("drops a referenced table whose referencing table lives in a dropped schema", async () => {
+    const fromSql = `CREATE TABLE a (id bigint PRIMARY KEY);
+       CREATE SCHEMA s;
+       CREATE TABLE s.b (id bigint PRIMARY KEY, a_id bigint REFERENCES public.a);`;
+    const { applied } = await dropAll(fromSql);
+    expect(Object.keys(applied.tables)).toEqual([]);
+    expect(applied.schemas["s"]).toBeUndefined();
+  });
+});

@@ -169,4 +169,16 @@ describe("reconcileMigration", () => {
     const statements = await reconcileMigration(from, to);
     expect(statements.some((s) => /CREATE VIEW/.test(s.ddl))).toBe(true);
   });
+
+  // Referenced table sorts first, so name order would drop it too early.
+  it("drops tables linked by a foreign key in dependency order", async () => {
+    const { statements, errorCount } = await reconcile(
+      `CREATE TABLE a (id bigint PRIMARY KEY);
+       CREATE TABLE b (id bigint PRIMARY KEY, a_id bigint REFERENCES a (id));`,
+      "",
+    );
+    expect(errorCount).toBe(0);
+    const ddls = statements.map((s) => s.ddl);
+    expect(ddls.indexOf("DROP TABLE public.b")).toBeLessThan(ddls.indexOf("DROP TABLE public.a"));
+  });
 });

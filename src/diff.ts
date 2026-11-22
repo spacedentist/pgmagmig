@@ -524,19 +524,44 @@ function diffTables(from: DatabaseSchema, to: DatabaseSchema, atoms: Atom[], dro
     diffTableContents(key, qt, fromTable, toTable, from, atoms);
   }
 
-  // Dropped tables
+  // Dropped tables. Tables in a dropped schema are left to DROP SCHEMA CASCADE.
+  const droppedTables = new Set<string>();
   for (const [key, table] of Object.entries(from.tables)) {
-    if (key in to.tables) continue;
-    // Skip if the table's schema is being dropped (CASCADE handles it)
-    if (droppedSchemas.has(table.schema)) continue;
+    if (!(key in to.tables) && !droppedSchemas.has(table.schema)) droppedTables.add(key);
+  }
+  const reaches = droppedTableReachability(from, droppedTables);
+
+  for (const key of droppedTables) {
+    const table = from.tables[key];
     const qt = `${table.schema}.${table.name}`;
-    // Require all FK constraints from OTHER tables pointing here are dropped
+    // Every foreign key from another table pointing here must be gone before
+    // this table can be dropped. How it goes away depends on its owner.
     const fkDropReqs: string[] = [];
     for (const [otherKey, otherTable] of Object.entries(from.tables)) {
       if (otherKey === key) continue;
       for (const con of otherTable.constraints) {
-        if (con.type === "FOREIGN KEY" && con.referencedTable === key) {
+        if (con.type !== "FOREIGN KEY" || con.referencedTable !== key) continue;
+        if (droppedSchemas.has(otherTable.schema)) {
+          // Owner vanishes with its schema.
+          fkDropReqs.push(`dropped:schema:${otherTable.schema}`);
+        } else if (!droppedTables.has(otherKey)) {
+          // Owner survives; the constraint is dropped by diffTableContents.
           fkDropReqs.push(`dropped:constraint:${otherKey}.${con.name}`);
+        } else if (reaches.get(key)!.has(otherKey)) {
+          // Owner is dropped too, but the two tables are in a foreign key
+          // cycle, so neither DROP TABLE can go first. Break the cycle by
+          // dropping this constraint explicitly beforehand.
+          const conKey = `${otherKey}.${con.name}`;
+          atoms.push(atom({
+            id: `drop-con:${conKey}`, kind: "drop_constraint", priority: 0,
+            target: otherKey, hazards: [],
+            provides: [`dropped:constraint:${conKey}`], requires: [],
+            table: `${otherTable.schema}.${otherTable.name}`, columnName: con.name,
+          }));
+          fkDropReqs.push(`dropped:constraint:${conKey}`);
+        } else {
+          // Owner is dropped too: its DROP TABLE takes the constraint with it.
+          fkDropReqs.push(`dropped:table:${otherKey}`);
         }
       }
     }
@@ -546,6 +571,40 @@ function diffTables(from: DatabaseSchema, to: DatabaseSchema, atoms: Atom[], dro
       provides: [`dropped:table:${key}`], requires: fkDropReqs, table: qt,
     }));
   }
+}
+
+/**
+ * For each dropped table, the set of dropped tables it transitively references
+ * via foreign keys (self-references excluded). If `x` reaches `y` and `y`
+ * references `x`, the two are in a cycle.
+ */
+function droppedTableReachability(
+  from: DatabaseSchema, dropped: Set<string>,
+): Map<string, Set<string>> {
+  const refs = new Map<string, Set<string>>();
+  for (const key of dropped) {
+    const targets = new Set<string>();
+    for (const con of from.tables[key].constraints) {
+      if (con.type === "FOREIGN KEY" && con.referencedTable &&
+          con.referencedTable !== key && dropped.has(con.referencedTable)) {
+        targets.add(con.referencedTable);
+      }
+    }
+    refs.set(key, targets);
+  }
+  const reach = new Map<string, Set<string>>();
+  for (const start of dropped) {
+    const seen = new Set<string>();
+    const stack = [...refs.get(start)!];
+    while (stack.length > 0) {
+      const next = stack.pop()!;
+      if (seen.has(next)) continue;
+      seen.add(next);
+      stack.push(...refs.get(next)!);
+    }
+    reach.set(start, seen);
+  }
+  return reach;
 }
 
 function addColumnAtoms(
