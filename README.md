@@ -21,7 +21,7 @@ Schema extraction, DDL generation, diffing, and diff validation all run **in-pro
 npm install pgmagmig
 ```
 
-Requires Node.js 20 or later.
+Requires Node.js 22.12 or later.
 
 ## Quick start
 
